@@ -8,8 +8,14 @@ import {
 import authService from '../services/authService.js';
 import { useAntiCheat } from '../hooks/useAntiCheat.js';
 import { GlassCard, Badge } from './common/UIComponents.jsx';
-import { supabase } from '../config/supabase.js';
+import { createClient } from '@supabase/supabase-js';
 import '../styles/globals.css';
+
+// Frontend-safe Supabase client using Vite env variables
+const supabaseFrontend = createClient(
+  import.meta.env.VITE_SUPABASE_URL || 'https://pyevwribnexxousrdqri.supabase.co',
+  import.meta.env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InB5ZXZ3cmlibmV4eG91c3JkcXJpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODYyNDA4NjQsImV4cCI6MjEwMTgxNjg2NH0.ywSqQ9xyQ9vgLSxBTUnUdddOC7gb7UXFS9kCjKm8SI4'
+);
 
 /**
  * Arena Component - LevelNLearn (SRMIST Campus Edition)
@@ -62,7 +68,7 @@ export function Arena({ roomPin }) {
   useEffect(() => {
     if (channelRef.current) return;
 
-    const channel = supabase.channel(`room:${roomPin}`);
+    const channel = supabaseFrontend.channel(`room:${roomPin}`);
     channelRef.current = channel;
 
     channel.on('broadcast', { event: '*' }, (payload) => {
@@ -107,7 +113,7 @@ export function Arena({ roomPin }) {
 
     return () => {
       if (channelRef.current) {
-        supabase.removeChannel(channelRef.current);
+        supabaseFrontend.removeChannel(channelRef.current);
         channelRef.current = null;
       }
       if (timerRef.current) clearInterval(timerRef.current);
