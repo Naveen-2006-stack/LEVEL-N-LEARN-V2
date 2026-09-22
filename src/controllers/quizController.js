@@ -347,14 +347,31 @@ export const quizController = {
 
   /**
    * GET /api/quizzes/:id - Get quiz details with nested questions
+   * Quiz metadata/questions are intentionally public (campus-wide quiz bank
+   * browsing), but `correct_option` is answer-key data and must only be
+   * visible to the quiz's own creator (or an admin) -- e.g. a player about
+   * to compete in a live session using this quiz must never be able to
+   * fetch the answers ahead of time via this endpoint.
    */
   async getQuiz(request, reply) {
     try {
       const { id } = request.params;
       const quiz = await quizService.getQuizById(id);
+
+      const decoded = getVerifiedIdentity(request);
+      const isOwner = decoded && decoded.userId && quiz.creator_id === decoded.userId;
+      const isAdmin = decoded && decoded.role === 'super_admin';
+
+      const responseQuiz = (isOwner || isAdmin)
+        ? quiz
+        : {
+            ...quiz,
+            questions: (quiz.questions || []).map(({ correct_option, ...rest }) => rest),
+          };
+
       return reply.send({
         success: true,
-        data: quiz,
+        data: responseQuiz,
       });
     } catch (err) {
       return reply.code(404).send({
@@ -510,6 +527,12 @@ export const quizController = {
 
   /**
    * POST /api/sessions/submit - Direct backend ingestion for Anti-Cheat V2 payload
+   * This mutates a specific game_session's stored results (upsert on
+   * session_id+player_id), so -- unlike the read-only quiz-browsing
+   * endpoints, which are intentionally public -- it requires proof that the
+   * caller is that session's own host. Without this, anyone who knows/guesses
+   * a sessionId UUID and a username could overwrite another player's final
+   * score/AP/violation log for any session, including ones long completed.
    */
   async submitSessionResult(request, reply) {
     try {
@@ -520,6 +543,24 @@ export const quizController = {
           success: false,
           error: 'sessionId and playerUsername are required in submission payload',
         });
+      }
+
+      const decoded = getVerifiedIdentity(request);
+      if (!decoded || !decoded.userId) {
+        return reply.code(401).send({ success: false, error: 'Authentication required to submit session results' });
+      }
+
+      const { data: gameSession, error: sessionErr } = await supabase
+        .from('game_sessions')
+        .select('id, host_id')
+        .eq('id', sessionId)
+        .single();
+
+      if (sessionErr || !gameSession) {
+        return reply.code(404).send({ success: false, error: 'Session not found' });
+      }
+      if (gameSession.host_id !== decoded.userId) {
+        return reply.code(403).send({ success: false, error: 'Only the session host can submit results for this session' });
       }
 
       const user = await quizService.ensureUser(playerUsername);
