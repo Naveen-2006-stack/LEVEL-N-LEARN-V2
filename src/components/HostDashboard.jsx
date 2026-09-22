@@ -4,11 +4,12 @@ import { useNavigate } from 'react-router-dom';
 import { 
   Sparkles, PlusCircle, Play, MessageSquarePlus, ShieldAlert, LogOut, 
   BookOpen, CheckCircle2, AlertCircle, X, Loader2, Send, Cpu, Trophy, 
-  Users, Radio, Flame, ArrowRight, Layers, KeyRound 
+  Users, Radio, Flame, ArrowRight, Layers, KeyRound, Edit3, Trash2
 } from 'lucide-react';
 import authService from '../services/authService.js';
 import AppShell from './common/AppShell.jsx';
 import { GlassCard, StatCard, Badge, EmptyState } from './common/UIComponents.jsx';
+import QuizEditor from './QuizEditor.jsx';
 import '../styles/globals.css';
 
 /**
@@ -34,6 +35,10 @@ export function HostDashboard() {
   const [activeSessionPin, setActiveSessionPin] = useState('');
   const [statusMessage, setStatusMessage] = useState('');
 
+  // Quiz Editor State
+  const [isEditorOpen, setIsEditorOpen] = useState(false);
+  const [editingQuizId, setEditingQuizId] = useState(null);
+
   // Feedback Modal State
   const [isFeedbackOpen, setIsFeedbackOpen] = useState(false);
   const [feedbackMessage, setFeedbackMessage] = useState('');
@@ -46,14 +51,58 @@ export function HostDashboard() {
     currentUser?.role === 'super_admin' || 
     currentUser?.user_metadata?.full_name === 'Naveen Manikandan';
 
+  const fetchQuizzes = async () => {
+    try {
+      const res = await fetch('/api/quizzes');
+      const data = await res.json();
+      if (data.success && Array.isArray(data.quizzes) && data.quizzes.length > 0) {
+        setQuizList(data.quizzes);
+      } else {
+        // Fallback starters
+        setQuizList([
+          { id: 'q_001', title: 'SRMIST Data Structures & Algorithms', count: 5, topic: 'DSA', difficulty: 'Hard' },
+          { id: 'q_002', title: 'Web Development & Fastify API Quiz', count: 8, topic: 'Web Dev', difficulty: 'Medium' },
+          { id: 'q_003', title: 'Operating Systems & Concurrency', count: 5, topic: 'Core CS', difficulty: 'Medium' },
+        ]);
+      }
+    } catch (e) {
+      console.warn('Failed to load quizzes from backend:', e);
+    }
+  };
+
   useEffect(() => {
-    // Initial campus quiz bank
-    setQuizList([
-      { id: 'q_001', title: 'SRMIST Data Structures & Algorithms', count: 5, topic: 'DSA', difficulty: 'Hard' },
-      { id: 'q_002', title: 'Web Development & Fastify API Quiz', count: 8, topic: 'Web Dev', difficulty: 'Medium' },
-      { id: 'q_003', title: 'Operating Systems & Concurrency', count: 5, topic: 'Core CS', difficulty: 'Medium' },
-    ]);
+    fetchQuizzes();
   }, []);
+
+  const handleQuizSaved = (savedQuiz) => {
+    fetchQuizzes();
+    setStatusMessage(`🎉 Quiz "${savedQuiz.title}" saved successfully!`);
+  };
+
+  const handleDeleteQuiz = async (quizId, e) => {
+    e?.stopPropagation();
+    if (!window.confirm('Are you sure you want to delete this quiz?')) return;
+    try {
+      const token = currentUser?.token;
+      const res = await fetch(`/api/quizzes/${quizId}`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({ token }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setQuizList(prev => prev.filter(q => q.id !== quizId));
+        setStatusMessage('Quiz deleted successfully.');
+      } else {
+        setStatusMessage(`⚠️ Failed to delete quiz: ${data.error}`);
+      }
+    } catch (e) {
+      setStatusMessage(`⚠️ Failed to delete quiz: ${e.message}`);
+    }
+  };
 
   // Handle Join Quiz PIN Submission
   const handleJoinQuiz = async (e) => {
@@ -461,7 +510,7 @@ export function HostDashboard() {
 
           {/* QUIZ BANK & LIVE HOSTING */}
           <GlassCard>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '10px' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                 <div style={{ width: '38px', height: '38px', borderRadius: '10px', background: 'rgba(56, 189, 248, 0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#38BDF8' }}>
                   <Layers className="w-5 h-5" />
@@ -475,46 +524,118 @@ export function HostDashboard() {
                   </p>
                 </div>
               </div>
+
+              <button
+                id="create-manual-quiz-btn"
+                type="button"
+                onClick={() => {
+                  setEditingQuizId(null);
+                  setIsEditorOpen(true);
+                }}
+                className="btn-glass"
+                style={{ padding: '8px 14px', borderRadius: '10px', fontSize: '12px', display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer', borderColor: 'rgba(168, 85, 247, 0.4)', color: '#C084FC' }}
+              >
+                <PlusCircle className="w-3.5 h-3.5" />
+                <span>New Manual Quiz</span>
+              </button>
             </div>
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', maxHeight: '340px', overflowY: 'auto', paddingRight: '4px' }}>
-              {quizList.map((quiz) => (
-                <div
-                  key={quiz.id}
-                  style={{
-                    background: 'rgba(15, 23, 42, 0.8)',
-                    border: '1px solid rgba(255, 255, 255, 0.08)',
-                    borderRadius: '14px',
-                    padding: '16px',
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                    gap: '12px',
-                    transition: 'border-color 0.2s',
-                  }}
-                >
-                  <div style={{ overflow: 'hidden' }}>
-                    <h3 style={{ fontSize: '14px', fontWeight: '700', color: '#F8FAFC', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                      {quiz.title}
-                    </h3>
-                    <div style={{ display: 'flex', gap: '8px', alignItems: 'center', marginTop: '6px' }}>
-                      <span style={{ fontSize: '12px', color: '#94A3B8' }}>{quiz.count || 5} Questions</span>
-                      <span style={{ fontSize: '10px', color: '#C084FC', background: 'rgba(124, 58, 237, 0.15)', padding: '2px 8px', borderRadius: '6px' }}>
-                        {quiz.topic || 'General'}
-                      </span>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', maxHeight: '380px', overflowY: 'auto', paddingRight: '4px' }}>
+              {quizList.map((quiz) => {
+                const canEdit = isSuperAdmin || !quiz.creator_id || quiz.creator_id === currentUser?.id;
+                return (
+                  <div
+                    key={quiz.id}
+                    data-testid={`quiz-card-${quiz.id}`}
+                    style={{
+                      background: 'rgba(15, 23, 42, 0.8)',
+                      border: '1px solid rgba(255, 255, 255, 0.08)',
+                      borderRadius: '14px',
+                      padding: '16px',
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      flexWrap: 'wrap',
+                      gap: '12px',
+                      transition: 'border-color 0.2s',
+                    }}
+                  >
+                    <div style={{ overflow: 'hidden', minWidth: '180px', flex: 1 }}>
+                      <h3 style={{ fontSize: '14px', fontWeight: '700', color: '#F8FAFC', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                        {quiz.title}
+                      </h3>
+                      <div style={{ display: 'flex', gap: '8px', alignItems: 'center', marginTop: '6px' }}>
+                        <span style={{ fontSize: '12px', color: '#94A3B8' }}>{quiz.count || 5} Questions</span>
+                        <span style={{ fontSize: '10px', color: '#C084FC', background: 'rgba(124, 58, 237, 0.15)', padding: '2px 8px', borderRadius: '6px' }}>
+                          {quiz.topic || 'General'}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexShrink: 0 }}>
+                      {canEdit && (
+                        <button
+                          id={`edit-quiz-btn-${quiz.id}`}
+                          data-testid={`edit-quiz-btn-${quiz.id}`}
+                          type="button"
+                          onClick={() => {
+                            setEditingQuizId(quiz.id);
+                            setIsEditorOpen(true);
+                          }}
+                          className="btn-glass"
+                          style={{
+                            padding: '8px 14px',
+                            borderRadius: '10px',
+                            fontSize: '13px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '6px',
+                            cursor: 'pointer',
+                            color: '#C084FC',
+                            borderColor: 'rgba(168, 85, 247, 0.4)',
+                          }}
+                          title="Edit Quiz"
+                        >
+                          <Edit3 className="w-3.5 h-3.5" />
+                          <span>Edit</span>
+                        </button>
+                      )}
+
+                      <button
+                        id={`host-live-btn-${quiz.id}`}
+                        type="button"
+                        onClick={() => handleHostRoom(quiz)}
+                        className="btn-green-action"
+                        style={{ padding: '8px 16px', borderRadius: '10px', fontSize: '13px', display: 'flex', alignItems: 'center', gap: '6px' }}
+                      >
+                        <Play className="w-3.5 h-3.5 fill-current" />
+                        <span>Host Live</span>
+                      </button>
+
+                      {canEdit && (
+                        <button
+                          type="button"
+                          onClick={(e) => handleDeleteQuiz(quiz.id, e)}
+                          style={{
+                            background: 'rgba(239, 68, 68, 0.1)',
+                            border: '1px solid rgba(239, 68, 68, 0.25)',
+                            color: '#EF4444',
+                            borderRadius: '8px',
+                            padding: '8px',
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                          }}
+                          title="Delete Quiz"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      )}
                     </div>
                   </div>
-
-                  <button
-                    onClick={() => handleHostRoom(quiz)}
-                    className="btn-green-action"
-                    style={{ padding: '8px 16px', borderRadius: '10px', fontSize: '13px', flexShrink: 0 }}
-                  >
-                    <Play className="w-3.5 h-3.5 fill-current mr-1" />
-                    <span>Host Live</span>
-                  </button>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </GlassCard>
 
@@ -639,6 +760,18 @@ export function HostDashboard() {
           </div>
         )}
       </AnimatePresence>
+
+      {/* QUIZ EDITOR MODAL */}
+      <QuizEditor
+        isOpen={isEditorOpen}
+        quizId={editingQuizId}
+        currentUser={currentUser}
+        onClose={() => {
+          setIsEditorOpen(false);
+          setEditingQuizId(null);
+        }}
+        onQuizSaved={handleQuizSaved}
+      />
     </AppShell>
   );
 }

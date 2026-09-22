@@ -294,7 +294,8 @@ export const gameEngineService = {
           id: q.id,
           question_text: q.question_text,
           options: q.options,
-          difficulty_tier: q.difficulty_tier
+          difficulty_tier: q.difficulty_tier,
+          image_url: q.image_url || null,
         }));
       }
     } catch (e) {}

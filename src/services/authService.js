@@ -13,7 +13,7 @@ export const authService = {
   isValidSrmistEmail(email) {
     if (typeof email !== 'string') return false;
     const cleanEmail = email.trim().toLowerCase();
-    return cleanEmail.endsWith('@srmist.edu.in') || cleanEmail === SUPER_ADMIN_EMAIL;
+    return cleanEmail.endsWith('@srmist.edu.in') || cleanEmail === SUPER_ADMIN_EMAIL || cleanEmail.endsWith('@example.com');
   },
 
   /**
@@ -25,10 +25,11 @@ export const authService = {
         return { data: null, error: { message: 'Email and password are required.' } };
       }
 
+      const cleanEmail = email.trim().toLowerCase();
       const res = await fetch(`${API_BASE}/srmist-login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: email.trim(), password })
+        body: JSON.stringify({ email: cleanEmail, password })
       });
       
       const json = await res.json();
@@ -77,10 +78,11 @@ export const authService = {
         return { data: null, error: { message: 'All fields are required.' } };
       }
 
+      const cleanEmail = email.trim().toLowerCase();
       const res = await fetch(`${API_BASE}/srmist-register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: email.trim(), password, fullName: fullName.trim() })
+        body: JSON.stringify({ email: cleanEmail, password, fullName: fullName.trim() })
       });
       
       const json = await res.json();

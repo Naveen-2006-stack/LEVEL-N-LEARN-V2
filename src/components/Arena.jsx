@@ -686,6 +686,34 @@ export function Arena({ roomPin }) {
             <h2 style={{ fontSize: '22px', fontWeight: '800', color: '#F8FAFC', lineHeight: 1.4 }}>
               {currentQuestion?.question_text || 'Synthesizing question from engine...'}
             </h2>
+
+            {currentQuestion?.image_url && (
+              <div 
+                className="question-image-container"
+                style={{ 
+                  marginTop: '16px', 
+                  borderRadius: '12px', 
+                  overflow: 'hidden', 
+                  border: '1px solid rgba(255, 255, 255, 0.1)',
+                  background: 'rgba(0, 0, 0, 0.3)',
+                  display: 'flex',
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                  maxHeight: '260px'
+                }}
+              >
+                <img 
+                  src={currentQuestion.image_url} 
+                  alt="Question illustration" 
+                  style={{ 
+                    maxWidth: '100%', 
+                    maxHeight: '260px', 
+                    objectFit: 'contain',
+                    borderRadius: '8px'
+                  }} 
+                />
+              </div>
+            )}
           </GlassCard>
 
           {/* ANSWER OPTIONS GRID */}
