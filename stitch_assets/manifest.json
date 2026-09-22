@@ -1,0 +1,42 @@
+[
+  {
+    "id": "15f86255b3d54632b8ff0c461744869c",
+    "title": "SRMIST Campus Gateway",
+    "type": "SCREEN",
+    "sourceScreen": "projects/5583555423388186115/screens/15f86255b3d54632b8ff0c461744869c",
+    "screenshotPath": "c:/Drive D/LevelNLearn/stitch_assets/srmist_campus_gateway_screenshot.png",
+    "htmlPath": "c:/Drive D/LevelNLearn/stitch_assets/srmist_campus_gateway_code.html"
+  },
+  {
+    "id": "23d44945fa434a2e99001bd8b5831a45",
+    "title": "LevelNLearn Landing Page",
+    "type": "SCREEN",
+    "sourceScreen": "projects/5583555423388186115/screens/23d44945fa434a2e99001bd8b5831a45",
+    "screenshotPath": "c:/Drive D/LevelNLearn/stitch_assets/levelnlearn_landing_page_screenshot.png",
+    "htmlPath": "c:/Drive D/LevelNLearn/stitch_assets/levelnlearn_landing_page_code.html"
+  },
+  {
+    "id": "4b6df2969e8441c6ba53ac102b4e8292",
+    "title": "LevelNLearn Premium Dashboard",
+    "type": "SCREEN",
+    "sourceScreen": "projects/5583555423388186115/screens/4b6df2969e8441c6ba53ac102b4e8292",
+    "screenshotPath": "c:/Drive D/LevelNLearn/stitch_assets/levelnlearn_premium_dashboard_screenshot.png",
+    "htmlPath": "c:/Drive D/LevelNLearn/stitch_assets/levelnlearn_premium_dashboard_code.html"
+  },
+  {
+    "id": "10a5db69a90841d7af8fd57de1fd316a",
+    "title": "Live Quiz & Leaderboard Flow",
+    "type": "SCREEN",
+    "sourceScreen": "projects/5583555423388186115/screens/10a5db69a90841d7af8fd57de1fd316a",
+    "screenshotPath": "c:/Drive D/LevelNLearn/stitch_assets/live_quiz_leaderboard_flow_screenshot.png",
+    "htmlPath": "c:/Drive D/LevelNLearn/stitch_assets/live_quiz_leaderboard_flow_code.html"
+  },
+  {
+    "id": "b4f174f3adf545e9bb787c8bdd737a12",
+    "title": "Teacher Admin & Lobby Flow",
+    "type": "SCREEN",
+    "sourceScreen": "projects/5583555423388186115/screens/b4f174f3adf545e9bb787c8bdd737a12",
+    "screenshotPath": "c:/Drive D/LevelNLearn/stitch_assets/teacher_admin_lobby_flow_screenshot.png",
+    "htmlPath": "c:/Drive D/LevelNLearn/stitch_assets/teacher_admin_lobby_flow_code.html"
+  }
+]

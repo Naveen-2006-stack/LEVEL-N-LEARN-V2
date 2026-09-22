@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>QuizzyPro Dashboard</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "on-background": "#eadfed",
+                        "tertiary-fixed-dim": "#fabc4e",
+                        "surface-variant": "#39323d",
+                        "background": "#16111b",
+                        "surface-container-highest": "#39323d",
+                        "on-primary": "#490080",
+                        "surface-container-low": "#1f1a23",
+                        "on-secondary-fixed": "#001a42",
+                        "surface-bright": "#3d3741",
+                        "tertiary": "#fabc4e",
+                        "inverse-primary": "#842bd2",
+                        "outline-variant": "#4d4354",
+                        "surface-dim": "#16111b",
+                        "surface-tint": "#ddb7ff",
+                        "on-primary-fixed": "#2c0051",
+                        "on-primary-container": "#400071",
+                        "secondary-fixed": "#d8e2ff",
+                        "inverse-surface": "#eadfed",
+                        "surface": "#16111b",
+                        "tertiary-fixed": "#ffdead",
+                        "on-error-container": "#ffdad6",
+                        "on-primary-fixed-variant": "#6900b3",
+                        "on-tertiary": "#432c00",
+                        "on-tertiary-fixed": "#281900",
+                        "primary-container": "#b76dff",
+                        "on-secondary-fixed-variant": "#004395",
+                        "surface-container-high": "#2e2832",
+                        "on-surface-variant": "#cfc2d6",
+                        "inverse-on-surface": "#342e38",
+                        "primary-fixed-dim": "#ddb7ff",
+                        "surface-container": "#231e27",
+                        "tertiary-container": "#bd871a",
+                        "primary-fixed": "#f0dbff",
+                        "secondary-container": "#0566d9",
+                        "error": "#ffb4ab",
+                        "secondary": "#adc6ff",
+                        "on-tertiary-fixed-variant": "#604100",
+                        "error-container": "#93000a",
+                        "on-secondary": "#002e6a",
+                        "on-secondary-container": "#e6ecff",
+                        "primary": "#ddb7ff",
+                        "surface-container-lowest": "#110c15",
+                        "on-tertiary-container": "#3a2600",
+                        "secondary-fixed-dim": "#adc6ff",
+                        "on-surface": "#eadfed",
+                        "on-error": "#690005",
+                        "outline": "#988d9f"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "unit": "8px",
+                        "container-padding-mobile": "20px",
+                        "container-padding-desktop": "40px",
+                        "gutter": "24px",
+                        "panel-gap": "16px"
+                    },
+                    "fontFamily": {
+                        "body-md": ["Plus Jakarta Sans"],
+                        "display-lg-mobile": ["Plus Jakarta Sans"],
+                        "body-lg": ["Plus Jakarta Sans"],
+                        "label-caps": ["Plus Jakarta Sans"],
+                        "headline-md": ["Plus Jakarta Sans"],
+                        "display-lg": ["Plus Jakarta Sans"]
+                    },
+                    "fontSize": {
+                        "body-md": ["16px", { "lineHeight": "24px", "fontWeight": "400" }],
+                        "display-lg-mobile": ["32px", { "lineHeight": "40px", "letterSpacing": "-0.01em", "fontWeight": "800" }],
+                        "body-lg": ["18px", { "lineHeight": "28px", "fontWeight": "400" }],
+                        "label-caps": ["12px", { "lineHeight": "16px", "letterSpacing": "0.1em", "fontWeight": "700" }],
+                        "headline-md": ["24px", { "lineHeight": "32px", "fontWeight": "700" }],
+                        "display-lg": ["48px", { "lineHeight": "56px", "letterSpacing": "-0.02em", "fontWeight": "800" }]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        body {
+            background-image: radial-gradient(circle at 50% 0%, #2e2832 0%, #16111b 70%);
+            background-attachment: fixed;
+        }
+        
+        /* Glassmorphism Panel Style */
+        .glass-panel {
+            background-color: rgba(35, 30, 39, 0.85); /* surface-container */
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(59, 130, 246, 0.3); /* Electric Blue hint */
+            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.5), inset 0 0 0 1px rgba(59, 130, 246, 0.2);
+        }
+
+        /* Glowing Edges */
+        .glow-active {
+            box-shadow: 0 0 12px rgba(183, 109, 255, 0.6); /* Purple active glow */
+            border-color: rgba(183, 109, 255, 0.8);
+        }
+        .glow-correct {
+            box-shadow: 0 0 12px rgba(16, 185, 129, 0.6); /* Green correct glow */
+            border-color: rgba(16, 185, 129, 0.8);
+        }
+        .glow-incorrect {
+            box-shadow: 0 0 12px rgba(220, 38, 38, 0.6); /* Crimson incorrect glow */
+            border-color: rgba(220, 38, 38, 0.8);
+        }
+
+        /* Inputs */
+        .glass-input {
+            background-color: rgba(22, 17, 27, 0.9); /* surface-dim */
+            border: 1px solid rgba(77, 67, 84, 0.5); /* outline-variant */
+            color: #eadfed; /* on-background */
+        }
+        .glass-input:focus {
+            outline: none;
+            border-color: #ddb7ff; /* primary */
+            box-shadow: 0 0 8px rgba(221, 183, 255, 0.4);
+        }
+
+        /* Animations */
+        @keyframes fadeUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .stagger-1 { animation: fadeUp 0.6s ease-out 0.1s both; }
+        .stagger-2 { animation: fadeUp 0.6s ease-out 0.2s both; }
+        .stagger-3 { animation: fadeUp 0.6s ease-out 0.3s both; }
+        .stagger-4 { animation: fadeUp 0.6s ease-out 0.4s both; }
+        .stagger-5 { animation: fadeUp 0.6s ease-out 0.5s both; }
+        
+        /* Gradient Button */
+        .btn-gradient {
+            background: linear-gradient(135deg, #b76dff 0%, #0566d9 100%);
+            border: none;
+            position: relative;
+            overflow: hidden;
+        }
+        .btn-gradient::after {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: linear-gradient(135deg, rgba(255,255,255,0.2) 0%, transparent 100%);
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+        .btn-gradient:hover::after {
+            opacity: 1;
+        }
+        .btn-gradient:hover {
+            box-shadow: 0 0 15px rgba(183, 109, 255, 0.8);
+        }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: rgba(77, 67, 84, 0.5); border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: rgba(183, 109, 255, 0.5); }
+    </style>
+</head>
+<body class="bg-background text-on-background min-h-screen flex flex-col font-body-md overflow-x-hidden">
+<!-- TopNavBar (Shared Component) -->
+<nav class="bg-surface-dim dark:bg-surface-dim border-b border-outline-variant shadow-sm docked full-width top-0 z-50">
+<div class="flex justify-between items-center px-gutter py-unit w-full max-w-7xl mx-auto">
+<div class="flex items-center space-x-8">
+<div class="font-display-lg text-display-lg text-primary dark:text-primary tracking-tighter">QuizzyPro</div>
+<div class="hidden md:flex space-x-6">
+<a class="text-primary dark:text-primary font-bold border-b-2 border-primary pb-1 font-label-lg text-label-lg transition-colors hover:text-primary dark:hover:text-primary scale-95 active:scale-90 transition-transform" href="#">Dashboard</a>
+<a class="text-on-surface-variant dark:text-on-surface-variant pb-1 font-label-lg text-label-lg transition-colors hover:text-primary dark:hover:text-primary scale-95 active:scale-90 transition-transform" href="#">Live Lobby</a>
+<a class="text-on-surface-variant dark:text-on-surface-variant pb-1 font-label-lg text-label-lg transition-colors hover:text-primary dark:hover:text-primary scale-95 active:scale-90 transition-transform" href="#">AI Engine</a>
+<a class="text-on-surface-variant dark:text-on-surface-variant pb-1 font-label-lg text-label-lg transition-colors hover:text-primary dark:hover:text-primary scale-95 active:scale-90 transition-transform" href="#">Reports</a>
+</div>
+</div>
+<div class="flex items-center space-x-4">
+<button class="btn-gradient text-on-primary font-label-caps text-label-caps px-4 py-2 rounded-lg scale-95 active:scale-90 transition-transform">Create Quiz</button>
+<button class="text-on-surface-variant hover:text-primary transition-colors">
+<span class="material-symbols-outlined">notifications</span>
+</button>
+<button class="text-on-surface-variant hover:text-primary transition-colors">
+<span class="material-symbols-outlined">settings</span>
+</button>
+<img alt="Teacher Profile" class="w-8 h-8 rounded-full border border-outline-variant object-cover" data-alt="A futuristic, high-resolution 3D avatar of a professional educator, designed in a sleek cyberpunk aesthetic with subtle neon purple and electric blue lighting. The portrait features a confident expression, smooth cybernetic enhancements, set against a dark void background. The lighting is cinematic, highlighting the sleek textures and advanced technology themes, fitting seamlessly into a premium dark-mode interface." src="https://lh3.googleusercontent.com/aida-public/AB6AXuArbKLccTb2QKGkxiUWUBZ6bft-CaNwkraHAsCtmY9bonPoUxh5oxzYM_bu0sZMQhwLb6qRJwSipkFwi0UyjKH22o0vG1lJsURsYzwMv_JO3GsHtDSlal1dioYr0L3W_Qgzulj1CHXR6PCvBmuVMInLUPsDFl9FbwEYFFNtVWj9_bWOYMPKjiffTdu_DRK8Q_odJHNAinzTt2TpyQXuEQkXmNcbOZGPEs3vJbFFCSY_VTn1LJf1hTNI"/>
+</div>
+</div>
+</nav>
+<!-- Main Dashboard Grid -->
+<main class="flex-grow flex flex-col md:flex-row p-container-padding-mobile md:p-container-padding-desktop gap-panel-gap max-w-7xl mx-auto w-full relative z-10">
+<!-- Panel 1: Visual Identity (Left) -->
+<section class="glass-panel rounded-xl p-gutter flex-1 flex flex-col stagger-1 h-[calc(100vh-120px)] overflow-y-auto">
+<h2 class="font-headline-md text-headline-md text-primary mb-6 border-b border-outline-variant pb-2">Visual Identity</h2>
+<div class="space-y-6">
+<!-- Color Swatches -->
+<div>
+<h3 class="font-label-caps text-label-caps text-on-surface-variant mb-3">Color Palette</h3>
+<div class="grid grid-cols-2 gap-4">
+<div class="bg-surface-container rounded-lg p-4 border border-outline-variant flex items-center space-x-3">
+<div class="w-8 h-8 rounded-full bg-primary shadow-[0_0_10px_#ddb7ff]"></div>
+<div>
+<div class="font-body-md text-body-md text-on-surface">Primary</div>
+<div class="font-label-caps text-label-caps text-on-surface-variant opacity-70">#ddb7ff</div>
+</div>
+</div>
+<div class="bg-surface-container rounded-lg p-4 border border-outline-variant flex items-center space-x-3">
+<div class="w-8 h-8 rounded-full bg-secondary-container shadow-[0_0_10px_#0566d9]"></div>
+<div>
+<div class="font-body-md text-body-md text-on-surface">Secondary</div>
+<div class="font-label-caps text-label-caps text-on-surface-variant opacity-70">#0566d9</div>
+</div>
+</div>
+<div class="bg-surface-container rounded-lg p-4 border border-outline-variant flex items-center space-x-3">
+<div class="w-8 h-8 rounded-full bg-tertiary-fixed-dim shadow-[0_0_10px_#fabc4e]"></div>
+<div>
+<div class="font-body-md text-body-md text-on-surface">Tertiary</div>
+<div class="font-label-caps text-label-caps text-on-surface-variant opacity-70">#fabc4e</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Typography Previews -->
+<div>
+<h3 class="font-label-caps text-label-caps text-on-surface-variant mb-3">Typography (Glow)</h3>
+<div class="space-y-4 bg-surface-container rounded-lg p-4 border border-outline-variant">
+<div>
+<div class="font-display-lg text-display-lg text-primary drop-shadow-[0_0_8px_rgba(221,183,255,0.8)]">Display Lg</div>
+<div class="font-label-caps text-label-caps text-on-surface-variant mt-1">Plus Jakarta Sans - 48px/800</div>
+</div>
+<hr class="border-outline-variant border-opacity-50"/>
+<div>
+<div class="font-headline-md text-headline-md text-secondary drop-shadow-[0_0_6px_rgba(173,198,255,0.6)]">Headline Md</div>
+<div class="font-label-caps text-label-caps text-on-surface-variant mt-1">Plus Jakarta Sans - 24px/700</div>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- Panel 2: Quiz Creator (Center) -->
+<section class="glass-panel rounded-xl p-gutter flex-[1.5] flex flex-col stagger-2 h-[calc(100vh-120px)] relative">
+<div class="flex justify-between items-center mb-6 border-b border-outline-variant pb-2">
+<h2 class="font-headline-md text-headline-md text-primary">Quiz Creator</h2>
+<div class="flex space-x-2 bg-surface-container-high rounded-lg p-1">
+<button class="bg-primary-container text-on-primary-container font-label-caps text-label-caps px-3 py-1 rounded shadow-[0_0_8px_rgba(183,109,255,0.4)]">Manual Editor</button>
+<button class="text-on-surface-variant font-label-caps text-label-caps px-3 py-1 rounded hover:bg-surface-variant transition-colors">AI Generator</button>
+</div>
+</div>
+<div class="flex flex-1 gap-4 overflow-hidden">
+<!-- Question List (Left) -->
+<div class="w-1/3 flex flex-col space-y-2 overflow-y-auto pr-2">
+<div class="bg-surface-container p-3 rounded-lg border border-primary glow-active cursor-pointer">
+<div class="font-label-caps text-label-caps text-primary mb-1">Q1</div>
+<div class="font-body-md text-body-md text-on-surface truncate">What is the capital city...</div>
+</div>
+<div class="bg-surface-container-low p-3 rounded-lg border border-outline-variant cursor-pointer hover:bg-surface-variant transition-colors opacity-70">
+<div class="font-label-caps text-label-caps text-on-surface-variant mb-1">Q2</div>
+<div class="font-body-md text-body-md text-on-surface truncate">Question B content...</div>
+</div>
+<div class="bg-surface-container-low p-3 rounded-lg border border-outline-variant cursor-pointer hover:bg-surface-variant transition-colors opacity-70 border-dashed flex items-center justify-center text-on-surface-variant">
+<span class="material-symbols-outlined mr-1 text-sm">add</span> Add
+                    </div>
+</div>
+<!-- Editor Form (Right) -->
+<div class="flex-1 flex flex-col space-y-4 overflow-y-auto pl-2 border-l border-outline-variant">
+<div>
+<label class="font-label-caps text-label-caps text-on-surface-variant block mb-1">Question Text</label>
+<textarea class="w-full glass-input rounded-lg p-3 font-body-md text-body-md h-24 resize-none" placeholder="Enter question...">What is the capital city of Australia?</textarea>
+</div>
+<div class="space-y-3">
+<label class="font-label-caps text-label-caps text-on-surface-variant block mb-1">Options</label>
+<div class="flex items-center space-x-2">
+<div class="w-8 h-8 rounded-full bg-surface-container flex items-center justify-center font-label-caps text-label-caps text-on-surface border glow-correct">A</div>
+<input class="flex-1 glass-input rounded-lg p-2 font-body-md text-body-md glow-correct" type="text" value="Canberra"/>
+<button class="text-primary hover:text-primary-fixed transition-colors"><span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">radio_button_checked</span></button>
+</div>
+<div class="flex items-center space-x-2 opacity-80 hover:opacity-100 transition-opacity">
+<div class="w-8 h-8 rounded-full bg-surface-container flex items-center justify-center font-label-caps text-label-caps text-on-surface border border-outline-variant">B</div>
+<input class="flex-1 glass-input rounded-lg p-2 font-body-md text-body-md" type="text" value="Sydney"/>
+<button class="text-on-surface-variant hover:text-primary transition-colors"><span class="material-symbols-outlined">radio_button_unchecked</span></button>
+</div>
+<div class="flex items-center space-x-2 opacity-80 hover:opacity-100 transition-opacity">
+<div class="w-8 h-8 rounded-full bg-surface-container flex items-center justify-center font-label-caps text-label-caps text-on-surface border border-outline-variant">C</div>
+<input class="flex-1 glass-input rounded-lg p-2 font-body-md text-body-md" type="text" value="Melbourne"/>
+<button class="text-on-surface-variant hover:text-primary transition-colors"><span class="material-symbols-outlined">radio_button_unchecked</span></button>
+</div>
+<div class="flex items-center space-x-2 opacity-80 hover:opacity-100 transition-opacity">
+<div class="w-8 h-8 rounded-full bg-surface-container flex items-center justify-center font-label-caps text-label-caps text-on-surface border border-outline-variant">D</div>
+<input class="flex-1 glass-input rounded-lg p-2 font-body-md text-body-md" type="text" value="Perth"/>
+<button class="text-on-surface-variant hover:text-primary transition-colors"><span class="material-symbols-outlined">radio_button_unchecked</span></button>
+</div>
+</div>
+</div>
+</div>
+<button class="mt-4 w-full btn-gradient text-on-primary font-headline-md text-headline-md py-3 rounded-lg shadow-[0_0_20px_rgba(183,109,255,0.6)] flex justify-center items-center">
+<span class="material-symbols-outlined mr-2">add_circle</span> Add Question
+            </button>
+</section>
+<!-- Panel 3: Live Quiz Flow (Right) -->
+<section class="glass-panel rounded-xl p-gutter flex-1 flex flex-col stagger-3 h-[calc(100vh-120px)] relative overflow-hidden">
+<!-- Top Bar Status -->
+<div class="flex justify-between items-center mb-6 border-b border-outline-variant pb-2">
+<h2 class="font-headline-md text-headline-md text-primary flex items-center">
+<span class="material-symbols-outlined mr-2 text-tertiary">bolt</span> Action Points: 150
+                </h2>
+<div class="flex items-center text-on-surface-variant font-label-caps text-label-caps bg-surface-container-high px-2 py-1 rounded-full border border-outline-variant opacity-80">
+<div class="w-2 h-2 rounded-full bg-emerald-500 mr-2 shadow-[0_0_5px_#10b981]"></div> Multi-LLM: Stable
+                </div>
+</div>
+<!-- Question Display -->
+<div class="flex-1 flex flex-col justify-center space-y-6">
+<div class="text-center stagger-4">
+<div class="font-label-caps text-label-caps text-secondary mb-2 tracking-widest uppercase">Current Question</div>
+<div class="font-body-lg text-body-lg text-on-surface bg-surface-container-low p-4 rounded-xl border border-outline-variant shadow-inner">
+                        What is the capital city of Australia?
+                    </div>
+</div>
+<!-- Answer Podium Grid -->
+<div class="grid grid-cols-2 gap-4 stagger-5">
+<div class="bg-surface-container rounded-xl p-4 flex flex-col items-center justify-center border glow-correct relative overflow-hidden group cursor-default">
+<div class="absolute inset-0 bg-emerald-500/10 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+<div class="font-display-lg text-display-lg text-on-surface drop-shadow-[0_0_5px_rgba(255,255,255,0.5)] z-10">A</div>
+<div class="font-label-caps text-label-caps text-emerald-400 mt-2 z-10 flex items-center"><span class="material-symbols-outlined text-sm mr-1">check_circle</span> Correct</div>
+</div>
+<div class="bg-surface-container rounded-xl p-4 flex flex-col items-center justify-center border glow-incorrect relative overflow-hidden opacity-60">
+<div class="font-display-lg text-display-lg text-on-surface z-10">B</div>
+<div class="font-label-caps text-label-caps text-red-400 mt-2 z-10 flex items-center"><span class="material-symbols-outlined text-sm mr-1">cancel</span> Incorrect</div>
+</div>
+<div class="bg-surface-container rounded-xl p-4 flex flex-col items-center justify-center border glow-incorrect relative overflow-hidden opacity-60">
+<div class="font-display-lg text-display-lg text-on-surface z-10">C</div>
+<div class="font-label-caps text-label-caps text-red-400 mt-2 z-10 flex items-center"><span class="material-symbols-outlined text-sm mr-1">cancel</span> Incorrect</div>
+</div>
+<div class="bg-surface-container rounded-xl p-4 flex flex-col items-center justify-center border glow-incorrect relative overflow-hidden opacity-60">
+<div class="font-display-lg text-display-lg text-on-surface z-10">D</div>
+<div class="font-label-caps text-label-caps text-red-400 mt-2 z-10 flex items-center"><span class="material-symbols-outlined text-sm mr-1">cancel</span> Incorrect</div>
+</div>
+</div>
+</div>
+<!-- Progress Bar -->
+<div class="mt-auto pt-4">
+<div class="w-full bg-surface-container-high rounded-full h-2 mb-1 overflow-hidden">
+<div class="bg-primary h-2 rounded-full shadow-[0_0_8px_#ddb7ff]" style="width: 25%"></div>
+</div>
+<div class="flex justify-between font-label-caps text-label-caps text-on-surface-variant">
+<span>Time Remaining</span>
+<span class="text-primary">15s</span>
+</div>
+</div>
+</section>
+</main>
+<!-- Vertical Tool Bar (Far Right) -->
+<aside class="fixed right-4 top-1/2 transform -translate-y-1/2 flex flex-col space-y-4 z-50">
+<button class="w-12 h-12 glass-panel rounded-full flex items-center justify-center text-on-surface-variant hover:text-primary hover:glow-active transition-all group relative">
+<span class="material-symbols-outlined">chat</span>
+<span class="absolute right-full mr-2 bg-surface-container px-2 py-1 rounded text-xs opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">AI Chat</span>
+</button>
+<button class="w-12 h-12 glass-panel rounded-full flex items-center justify-center text-on-surface-variant hover:text-primary hover:glow-active transition-all group relative">
+<span class="material-symbols-outlined">library_music</span>
+<span class="absolute right-full mr-2 bg-surface-container px-2 py-1 rounded text-xs opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">Soundboard</span>
+</button>
+<button class="w-12 h-12 glass-panel rounded-full flex items-center justify-center text-on-surface-variant hover:text-primary hover:glow-active transition-all group relative">
+<span class="material-symbols-outlined">visibility</span>
+<span class="absolute right-full mr-2 bg-surface-container px-2 py-1 rounded text-xs opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">Preview</span>
+</button>
+</aside>
+</body></html>

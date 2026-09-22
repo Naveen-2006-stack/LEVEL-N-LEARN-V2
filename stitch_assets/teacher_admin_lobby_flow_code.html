@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+
+<html class="light dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>LevelNLearn - Teacher Admin &amp; Lobby</title>
+<!-- Fonts -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,400;0,500;0,600;0,700;0,800;1,800&amp;display=swap" rel="stylesheet"/>
+<!-- Material Symbols -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Lucide Icons (as requested by user, though Material Symbols is mandated in instructions. I will include Lucide via CDN for specific requests but prioritize Material Symbols for shared components as per mandate) -->
+<script src="https://unpkg.com/lucide@latest"></script>
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<!-- Tailwind Config -->
+<script id="tailwind-config">tailwind.config = {darkMode: "class", theme: {extend: {colors: {"surface-container": "#031c28", "surface-container-high": "#032230", "surface-container-highest": "#042939", "surface-container-lowest": "#000000", "surface-bright": "#043042", "secondary-fixed": "#fae4fc", error: "#ff716c", "surface-card": "#FFFFFF", "primary-fixed-dim": "#8bd3ef", "on-tertiary-fixed": "#450954", "on-primary-fixed-variant": "#005c73", "tertiary-fixed": "#eea8f9", "on-primary-fixed": "#003e4e", "primary-fixed": "#99e1fe", "on-primary-container": "#005266", "on-surface-variant": "#90afc3", "incorrect-red": "#EF4444", "correct-green": "#22C55E", "on-primary": "#005b72", "tertiary-container": "#eea8f9", "on-secondary-container": "#b19eb4", "tertiary-fixed-dim": "#e09beb", "on-tertiary": "#672d74", "inverse-surface": "#f5faff", "on-tertiary-container": "#5d236a", "surface-tint": "#c0ecff", "inverse-primary": "#0a6780", background: "#021018", "on-tertiary-fixed-variant": "#672d74", "on-error-container": "#ff9993", "on-secondary": "#4a3b4e", "inverse-on-surface": "#475761", "primary-container": "#99e1fe", primary: "#c0ecff", "electric-purple": "#7C3AED", secondary: "#d4c0d7", "text-main": "#0F172A", "on-error": "#490006", "surface-dim": "#021018", "on-secondary-fixed": "#4e4052", "on-background": "#caeaff", "on-surface": "#caeaff", "vivid-yellow": "#FACC15", "surface-variant": "#042939", "error-container": "#8a1a1e", "clear-blue": "#3B82F6", "surface-container-low": "#02151f", "secondary-fixed-dim": "#ebd6ee", tertiary: "#f7baff", "secondary-container": "#2e2132", outline: "#5b798c", surface: "#021018", "outline-variant": "#2c4c5d", "on-secondary-fixed-variant": "#6b5b6f", "error-dim": "#c94947", "secondary-dim": "#c6b2c9", "tertiary-dim": "#e09beb", "primary-dim": "#8bd3ef"}, borderRadius: {DEFAULT: "0.25rem", lg: "0.5rem", xl: "0.75rem", full: "9999px"}, spacing: {md: "24px", "container-max": "1200px", gutter: "24px", lg: "40px", base: "8px", xs: "4px", xl: "64px", sm: "12px"}, fontFamily: {"body-md": ["Plus Jakarta Sans"], "label-lg": ["Plus Jakarta Sans"], "headline-lg-mobile": ["Plus Jakarta Sans"], "display-lg": ["Plus Jakarta Sans"], "headline-md": ["Plus Jakarta Sans"], "headline-lg": ["Plus Jakarta Sans"], "body-lg": ["Plus Jakarta Sans"], "label-md": ["Plus Jakarta Sans"], headline: ["Plus Jakarta Sans"], display: ["Plus Jakarta Sans"], body: ["Plus Jakarta Sans"], label: ["Plus Jakarta Sans"]}, fontSize: {"body-md": ["16px", {lineHeight: "24px", fontWeight: "400"}], "label-lg": ["14px", {lineHeight: "20px", letterSpacing: "0.05em", fontWeight: "700"}], "headline-lg-mobile": ["24px", {lineHeight: "32px", fontWeight: "700"}], "display-lg": ["48px", {lineHeight: "56px", letterSpacing: "-0.02em", fontWeight: "800"}], "headline-md": ["24px", {lineHeight: "32px", fontWeight: "700"}], "headline-lg": ["32px", {lineHeight: "40px", letterSpacing: "-0.01em", fontWeight: "700"}], "body-lg": ["18px", {lineHeight: "28px", fontWeight: "500"}], "label-md": ["12px", {lineHeight: "16px", fontWeight: "600"}]}}}};</script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .material-symbols-outlined[data-weight="fill"] {
+            font-variation-settings: 'FILL' 1;
+        }
+        
+        body {
+            background-color: #f7f9fb; /* off-white requested */
+        }
+
+        /* Custom scrollbar for textareas */
+        textarea::-webkit-scrollbar {
+            width: 8px;
+        }
+        textarea::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        textarea::-webkit-scrollbar-thumb {
+            background-color: #ccc3d8;
+            border-radius: 4px;
+        }
+
+        /* Spring Animations */
+        @keyframes popIn {
+            0% { transform: scale(0.8); opacity: 0; }
+            50% { transform: scale(1.1); }
+            100% { transform: scale(1); opacity: 1; }
+        }
+        
+        .avatar-pill {
+            animation: popIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+            opacity: 0;
+        }
+        
+        .stagger-1 { animation-delay: 0.1s; }
+        .stagger-2 { animation-delay: 0.2s; }
+        .stagger-3 { animation-delay: 0.3s; }
+        .stagger-4 { animation-delay: 0.4s; }
+        .stagger-5 { animation-delay: 0.5s; }
+        .stagger-6 { animation-delay: 0.6s; }
+
+        .btn-spring:active {
+            transform: scale(0.95);
+            transition: transform 0.1s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .btn-spring {
+            transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        .btn-spring:hover {
+            transform: translateY(-2px);
+        }
+    </style>
+</head>
+<body class="font-body-md text-on-background antialiased flex h-screen overflow-hidden">
+<!-- JSON Component: SideNavBar (Hidden on Mobile) -->
+<nav class="hidden md:flex flex-col h-full p-md space-y-base bg-surface-container-lowest dark:bg-on-background border-r border-outline-variant w-64 shadow-md shrink-0">
+<!-- Header -->
+<div class="mb-lg">
+<h1 class="font-headline-md text-headline-md font-extrabold text-primary">LevelNLearn</h1>
+<p class="font-label-lg text-label-lg text-on-surface-variant mt-1">Room PIN: 882 190</p>
+</div>
+<!-- Tabs -->
+<div class="flex-1 space-y-2">
+<a class="flex items-center gap-3 px-4 py-3 bg-primary-container text-on-primary-container rounded-xl font-bold transition-all Active: scale-98 duration-200" href="#">
+<span class="material-symbols-outlined" data-icon="dashboard">dashboard</span>
+<span class="font-label-lg text-label-lg">Dashboard</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 text-on-surface-variant hover:bg-surface-container-high rounded-xl transition-all hover:bg-surface-container-high" href="#">
+<span class="material-symbols-outlined" data-icon="rocket_launch">rocket_launch</span>
+<span class="font-label-lg text-label-lg">Live Quiz</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 text-on-surface-variant hover:bg-surface-container-high rounded-xl transition-all hover:bg-surface-container-high" href="#">
+<span class="material-symbols-outlined" data-icon="military_tech">military_tech</span>
+<span class="font-label-lg text-label-lg">Leaderboards</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 text-on-surface-variant hover:bg-surface-container-high rounded-xl transition-all hover:bg-surface-container-high" href="#">
+<span class="material-symbols-outlined" data-icon="history">history</span>
+<span class="font-label-lg text-label-lg">History</span>
+</a>
+</div>
+<!-- CTA -->
+<button class="w-full bg-electric-purple text-on-primary font-label-lg text-label-lg py-3 rounded-xl shadow-sm hover:shadow-md btn-spring mt-auto mb-4">
+            Create Quiz
+        </button>
+<!-- Footer -->
+<div class="space-y-2 pt-4 border-t border-outline-variant">
+<a class="flex items-center gap-3 px-4 py-2 text-on-surface-variant hover:bg-surface-container-high rounded-xl transition-all" href="#">
+<span class="material-symbols-outlined" data-icon="help">help</span>
+<span class="font-label-lg text-label-lg">Help</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-2 text-on-surface-variant hover:bg-surface-container-high rounded-xl transition-all" href="#">
+<span class="material-symbols-outlined" data-icon="logout">logout</span>
+<span class="font-label-lg text-label-lg">Logout</span>
+</a>
+<div class="flex items-center gap-3 px-4 py-2 mt-4">
+<img class="w-8 h-8 rounded-full object-cover" data-alt="A small, circular avatar portrait of a modern, approachable teacher smiling warmly in a bright classroom setting. Professional lighting, high resolution, minimalist background." src="https://lh3.googleusercontent.com/aida-public/AB6AXuD0R6uJsEs9WL9kfQYQR2Ds9UTV1NClk9XG3U_nRdV6HZ4XxMp_KPPR9vzjl7aU68FFe2wd_T5vHVKrcrmRca6xovFdDOWLSjwFOv-ZocaZGeRoKZhm2zd-MhybTU0F8Tw172jTCIWgbbGRDSIc9s9n_beRIoWgRRF9VAcyAW3OgFqflxJ7rFVEEbUAZ36U8EObF-SgpUumnZ_-gjuWp5LgK1wC4CzIWoHEp0HDmpVxYjM0MCZcUh9O"/>
+<span class="font-label-md text-label-md text-on-surface-variant">Teacher Profile</span>
+</div>
+</div>
+</nav>
+<!-- Main Content Area -->
+<main class="flex-1 flex flex-col h-full overflow-y-auto bg-background relative">
+<!-- JSON Component: TopAppBar (Visible on Web, acts as top header for main content) -->
+<header class="flex justify-between items-center w-full px-md py-sm max-w-container-max mx-auto bg-surface dark:bg-on-background shadow-sm docked full-width top-0 z-10 sticky">
+<div class="flex items-center">
+<!-- Mobile menu button (hidden on md) -->
+<button class="md:hidden mr-4 text-on-surface-variant hover:text-primary transition-colors">
+<i data-lucide="menu"></i>
+</button>
+<span class="font-display-lg text-display-lg text-primary dark:text-primary-fixed italic tracking-tighter text-3xl">LevelNLearn</span>
+</div>
+<div class="hidden md:flex space-x-6">
+<!-- Top Nav Links representing TopAppBar state -->
+<a class="font-label-lg text-label-lg text-primary font-bold border-b-2 border-primary pb-1" href="#">Dashboard</a>
+<a class="font-label-lg text-label-lg text-on-surface-variant dark:text-outline-variant hover:text-primary dark:hover:text-primary-fixed transition-colors" href="#">Live Quiz</a>
+</div>
+<div class="flex items-center space-x-4">
+<button class="text-on-surface-variant hover:text-primary transition-colors scale-95 active:scale-90 transition-transform">
+<span class="material-symbols-outlined" data-icon="timer">timer</span>
+</button>
+<button class="text-on-surface-variant hover:text-primary transition-colors scale-95 active:scale-90 transition-transform">
+<span class="material-symbols-outlined" data-icon="account_circle">account_circle</span>
+</button>
+<button class="text-on-surface-variant hover:text-primary transition-colors scale-95 active:scale-90 transition-transform">
+<span class="material-symbols-outlined" data-icon="settings">settings</span>
+</button>
+</div>
+</header>
+<div class="flex-1 p-md md:p-lg max-w-container-max mx-auto w-full pb-32 md:pb-lg flex flex-col gap-lg">
+<!-- State Toggle for Demo Purposes (Not requested in prompt, but needed to show both states in one HTML file cleanly) -->
+<div class="flex justify-center mb-4 space-x-4">
+<button class="px-4 py-2 bg-surface-container-high rounded-full font-label-lg text-sm hover:bg-surface-variant transition-colors text-on-surface" onclick="document.getElementById('state1').classList.remove('hidden'); document.getElementById('state2').classList.add('hidden');">View Admin State</button>
+<button class="px-4 py-2 bg-surface-container-high rounded-full font-label-lg text-sm hover:bg-surface-variant transition-colors text-on-surface" onclick="document.getElementById('state1').classList.add('hidden'); document.getElementById('state2').classList.remove('hidden');">View Lobby State</button>
+</div>
+<!-- Application State 1: Teacher Admin (AI Generator) -->
+<div class="flex flex-col items-center justify-center flex-1 w-full max-w-3xl mx-auto" id="state1">
+<div class="text-center mb-8">
+<h2 class="font-headline-lg text-headline-lg text-text-main mb-2">Generate Lesson Quiz</h2>
+<p class="font-body-lg text-body-lg text-on-surface-variant">Paste your lesson notes below, and our AI will generate a tailored interactive quiz instantly.</p>
+</div>
+<div class="w-full bg-surface-card rounded-[24px] p-6 shadow-[0_10px_25px_-5px_rgba(0,0,0,0.05)] border border-outline-variant/30 flex flex-col">
+<label class="font-label-lg text-label-lg text-on-surface-variant mb-2 ml-1" for="lesson-notes">Lesson Notes</label>
+<textarea class="w-full rounded-2xl border-outline-variant bg-surface-bright focus:border-electric-purple focus:ring focus:ring-electric-purple/20 focus:outline-none p-4 font-body-md text-text-main resize-none transition-shadow mb-6" id="lesson-notes" placeholder="E.g., Today we learned about the water cycle: Evaporation, Condensation, Precipitation..." rows="8"></textarea>
+<div class="flex justify-between items-center mt-auto">
+<!-- Loading State (Hidden by default, shown via JS) -->
+<div class="hidden flex items-center space-x-3 text-electric-purple font-label-lg text-label-lg" id="ai-loading">
+<i class="animate-spin w-5 h-5" data-lucide="loader-2"></i>
+<span id="loading-text">Routing to Llama 3...</span>
+</div>
+<div class="flex-1"></div> <!-- spacer -->
+<button class="bg-electric-purple text-on-primary font-label-lg text-label-lg px-8 py-4 rounded-xl shadow-md hover:shadow-lg btn-spring flex items-center gap-2" id="generate-btn" onclick="startGeneration()">
+<i class="w-5 h-5" data-lucide="sparkles"></i>
+                            Generate AI Quiz
+                        </button>
+</div>
+</div>
+</div>
+<!-- Application State 2: Class-Sourced Lobby -->
+<div class="hidden flex-col flex-1 w-full" id="state2">
+<!-- Lobby Header -->
+<div class="text-center mb-12">
+<p class="font-label-lg text-label-lg text-electric-purple uppercase tracking-widest mb-2">Join at LevelNLearn.com</p>
+<div class="inline-flex items-center justify-center bg-surface-card px-8 py-4 rounded-3xl shadow-[0_10px_25px_-5px_rgba(0,0,0,0.05)] border border-outline-variant/20">
+<span class="font-display-lg text-display-lg text-text-main tracking-widest">882 190</span>
+</div>
+</div>
+<div class="grid grid-cols-1 lg:grid-cols-12 gap-lg flex-1">
+<!-- Left side: Form for "Class-Sourced Mode" -->
+<div class="lg:col-span-5 flex flex-col">
+<div class="bg-surface-card rounded-3xl p-lg shadow-[0_10px_25px_-5px_rgba(0,0,0,0.05)] border border-outline-variant/20 h-full flex flex-col">
+<div class="flex items-center gap-3 mb-6">
+<div class="p-2 bg-tertiary-fixed rounded-lg text-on-tertiary-fixed">
+<i class="w-6 h-6" data-lucide="message-square-plus"></i>
+</div>
+<h3 class="font-headline-md text-headline-md text-text-main">Class-Sourced Mode</h3>
+</div>
+<p class="font-body-md text-body-md text-on-surface-variant mb-6">While waiting, submit a question you think should be on the quiz!</p>
+<form class="space-y-4 flex-1 flex flex-col">
+<div>
+<label class="font-label-md text-label-md text-on-surface-variant ml-1 mb-1 block">Your Name</label>
+<input class="w-full rounded-xl border-outline-variant bg-surface-bright focus:border-tertiary-container focus:ring focus:ring-tertiary-container/20 px-4 py-3 font-body-md" placeholder="Enter your name" type="text"/>
+</div>
+<div class="flex-1 flex flex-col min-h-[150px]">
+<label class="font-label-md text-label-md text-on-surface-variant ml-1 mb-1 block">Your Question</label>
+<textarea class="w-full flex-1 rounded-xl border-outline-variant bg-surface-bright focus:border-tertiary-container focus:ring focus:ring-tertiary-container/20 px-4 py-3 font-body-md resize-none" placeholder="What is the powerhouse of the cell?"></textarea>
+</div>
+<button class="w-full bg-surface-container-high text-on-surface font-label-lg text-label-lg py-4 rounded-xl border border-outline-variant/50 hover:bg-surface-variant transition-colors mt-auto" type="button">
+                                    Submit Question
+                                </button>
+</form>
+</div>
+</div>
+<!-- Right side: Grid of playful avatar pills -->
+<div class="lg:col-span-7 bg-surface-card rounded-3xl p-lg shadow-[0_10px_25px_-5px_rgba(0,0,0,0.05)] border border-outline-variant/20 h-full flex flex-col">
+<div class="flex justify-between items-center mb-6">
+<h3 class="font-headline-md text-headline-md text-text-main">Joined Students</h3>
+<span class="bg-primary-container text-on-primary-container px-3 py-1 rounded-full font-label-lg text-label-lg">12 / 30</span>
+</div>
+<div class="flex-1 bg-surface-container-low rounded-2xl p-6 overflow-y-auto">
+<div class="flex flex-wrap gap-4" id="avatar-grid">
+<!-- Pre-populated avatars -->
+<div class="avatar-pill stagger-1 inline-flex items-center gap-2 bg-surface-card px-4 py-2 rounded-full shadow-sm border border-outline-variant/30">
+<div class="w-6 h-6 rounded-full bg-vivid-yellow flex items-center justify-center font-bold text-xs text-on-secondary-container">A</div>
+<span class="font-label-lg text-label-lg text-text-main">Alex M.</span>
+</div>
+<div class="avatar-pill stagger-2 inline-flex items-center gap-2 bg-surface-card px-4 py-2 rounded-full shadow-sm border border-outline-variant/30">
+<div class="w-6 h-6 rounded-full bg-correct-green flex items-center justify-center font-bold text-xs text-on-primary">S</div>
+<span class="font-label-lg text-label-lg text-text-main">Sarah K.</span>
+</div>
+<div class="avatar-pill stagger-3 inline-flex items-center gap-2 bg-surface-card px-4 py-2 rounded-full shadow-sm border border-outline-variant/30">
+<div class="w-6 h-6 rounded-full bg-electric-purple flex items-center justify-center font-bold text-xs text-on-primary">J</div>
+<span class="font-label-lg text-label-lg text-text-main">Jordan T.</span>
+</div>
+<div class="avatar-pill stagger-4 inline-flex items-center gap-2 bg-surface-card px-4 py-2 rounded-full shadow-sm border border-outline-variant/30">
+<div class="w-6 h-6 rounded-full bg-clear-blue flex items-center justify-center font-bold text-xs text-on-primary">M</div>
+<span class="font-label-lg text-label-lg text-text-main">Mia L.</span>
+</div>
+<div class="avatar-pill stagger-5 inline-flex items-center gap-2 bg-surface-card px-4 py-2 rounded-full shadow-sm border border-outline-variant/30">
+<div class="w-6 h-6 rounded-full bg-[#ec4899] flex items-center justify-center font-bold text-xs text-on-primary">E</div>
+<span class="font-label-lg text-label-lg text-text-main">Ethan W.</span>
+</div>
+</div>
+</div>
+<div class="mt-6 flex justify-end">
+<button class="bg-correct-green text-on-primary font-label-lg text-label-lg px-8 py-4 rounded-xl shadow-md hover:shadow-lg btn-spring flex items-center gap-2">
+                                Start Quiz Now
+                                <i class="w-5 h-5 fill-current" data-lucide="play"></i>
+</button>
+</div>
+</div>
+</div>
+</div>
+</div>
+</main>
+<!-- JSON Component: BottomNavBar (Visible on Mobile) -->
+<nav class="md:hidden fixed bottom-0 left-0 w-full z-50 flex justify-around items-center px-4 py-2 border-t border-outline-variant bg-surface-container-lowest dark:bg-on-background shadow-[0_-4px_10px_rgba(0,0,0,0.05)] docked full-width bottom-0 rounded-t-xl shadow-lg">
+<a class="flex flex-col items-center justify-center bg-primary-container text-on-primary-container rounded-2xl px-4 py-1 scale-95 active:scale-90 transition-transform" href="#">
+<span class="material-symbols-outlined" data-icon="home" data-weight="fill">home</span>
+<span class="font-label-md text-label-md mt-1">Home</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant hover:text-primary dark:hover:text-primary-fixed-dim scale-95 active:scale-90 transition-transform" href="#">
+<span class="material-symbols-outlined" data-icon="groups">groups</span>
+<span class="font-label-md text-label-md mt-1">Lobby</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant hover:text-primary dark:hover:text-primary-fixed-dim scale-95 active:scale-90 transition-transform" href="#">
+<span class="material-symbols-outlined" data-icon="quiz">quiz</span>
+<span class="font-label-md text-label-md mt-1">Quiz</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant hover:text-primary dark:hover:text-primary-fixed-dim scale-95 active:scale-90 transition-transform" href="#">
+<span class="material-symbols-outlined" data-icon="leaderboard">leaderboard</span>
+<span class="font-label-md text-label-md mt-1">Ranks</span>
+</a>
+</nav>
+<script>
+        // Initialize Lucide icons
+        lucide.createIcons();
+
+        // Simulate AI Generation Loading State
+        function startGeneration() {
+            const btn = document.getElementById('generate-btn');
+            const loading = document.getElementById('ai-loading');
+            const loadingText = document.getElementById('loading-text');
+            
+            btn.classList.add('opacity-50', 'pointer-events-none');
+            loading.classList.remove('hidden');
+            
+            const states = [
+                "Routing to Llama 3...",
+                "Analyzing lesson concepts...",
+                "Generating distractors...",
+                "Formatting quiz... Success!"
+            ];
+            
+            let i = 0;
+            const interval = setInterval(() => {
+                i++;
+                if(i < states.length) {
+                    loadingText.innerText = states[i];
+                } else {
+                    clearInterval(interval);
+                    setTimeout(() => {
+                        loading.classList.add('hidden');
+                        btn.classList.remove('opacity-50', 'pointer-events-none');
+                        loadingText.innerText = states[0]; // reset
+                        alert("Quiz Generated! (Mock)");
+                    }, 500);
+                }
+            }, 800);
+        }
+
+        // Simulate incoming students to the lobby
+        const names = ["Chloe B.", "Liam O.", "Zoe R.", "Noah P."];
+        const colors = ["bg-vivid-yellow", "bg-electric-purple", "bg-[#ec4899]", "bg-clear-blue"];
+        
+        setInterval(() => {
+            if(!document.getElementById('state2').classList.contains('hidden') && Math.random() > 0.6) {
+                const grid = document.getElementById('avatar-grid');
+                if(grid.children.length < 20) {
+                    const randomName = names[Math.floor(Math.random() * names.length)];
+                    const randomColor = colors[Math.floor(Math.random() * colors.length)];
+                    const initial = randomName.charAt(0);
+                    
+                    const el = document.createElement('div');
+                    el.className = 'avatar-pill inline-flex items-center gap-2 bg-surface-card px-4 py-2 rounded-full shadow-sm border border-outline-variant/30';
+                    el.innerHTML = `
+                        <div class="w-6 h-6 rounded-full ${randomColor} flex items-center justify-center font-bold text-xs text-on-primary">${initial}</div>
+                        <span class="font-label-lg text-label-lg text-text-main">${randomName}</span>
+                    `;
+                    grid.appendChild(el);
+                }
+            }
+        }, 3000);
+
+    </script>
+</body></html>

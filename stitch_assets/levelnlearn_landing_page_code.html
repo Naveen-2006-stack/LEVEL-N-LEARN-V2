@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>LevelNLearn - AI-Powered Quizzes</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<style>
+        .material-symbols-outlined {
+            font-family: 'Material Symbols Outlined';
+            font-weight: normal;
+            font-style: normal;
+            font-size: 24px;
+            line-height: 1;
+            letter-spacing: normal;
+            text-transform: none;
+            display: inline-block;
+            white-space: nowrap;
+            word-wrap: normal;
+            direction: ltr;
+            -webkit-font-feature-settings: 'liga';
+            -webkit-font-smoothing: antialiased;
+        }
+        /* Custom glow for interactive elements */
+        .neon-glow:hover {
+            box-shadow: 0 0 20px rgba(158, 95, 170, 0.4); /* tertiary-container based */
+        }
+    </style>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "secondary-fixed": "#f1dcf4",
+                        "tertiary-container": "#9e5faa",
+                        "surface-container-high": "#1c2c35",
+                        "on-tertiary-container": "#0e0014",
+                        "inverse-surface": "#d4e5f1",
+                        "on-primary-fixed": "#001f28",
+                        "on-secondary-container": "#c6b2c9",
+                        "secondary-fixed-dim": "#d4c0d7",
+                        "tertiary-fixed-dim": "#f4aeff",
+                        "error-container": "#93000a",
+                        "on-error": "#690005",
+                        "outline": "#899297",
+                        "surface-container-low": "#0d1d26",
+                        "surface-container": "#12212a",
+                        "on-surface-variant": "#bfc8cd",
+                        "tertiary": "#f4aeff",
+                        "on-primary": "#003544",
+                        "on-secondary-fixed-variant": "#504255",
+                        "primary-fixed": "#b7eaff",
+                        "on-primary-fixed-variant": "#004d61",
+                        "surface-tint": "#88d1ec",
+                        "inverse-on-surface": "#23323c",
+                        "primary-container": "#328099",
+                        "surface-container-lowest": "#011018",
+                        "on-primary-container": "#00060a",
+                        "on-background": "#d4e5f1",
+                        "secondary-container": "#534457",
+                        "on-secondary": "#392c3e",
+                        "secondary": "#d4c0d7",
+                        "on-surface": "#d4e5f1",
+                        "on-tertiary-fixed-variant": "#692e76",
+                        "tertiary-fixed": "#fdd6ff",
+                        "error": "#ffb4ab",
+                        "on-error-container": "#ffdad6",
+                        "outline-variant": "#3f484c",
+                        "surface-bright": "#2c3b45",
+                        "inverse-primary": "#07677f",
+                        "primary-fixed-dim": "#88d1ec",
+                        "background": "#05151e",
+                        "on-tertiary": "#4f155d",
+                        "on-tertiary-fixed": "#340042",
+                        "surface": "#05151e",
+                        "primary": "#88d1ec",
+                        "surface-container-highest": "#273740",
+                        "surface-dim": "#05151e",
+                        "on-secondary-fixed": "#231728",
+                        "surface-variant": "#273740"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px",
+                        "2xl": "1rem",
+                        "3xl": "1.5rem"
+                    },
+                    "spacing": {
+                        "xs": "4px",
+                        "sm": "12px",
+                        "gutter": "24px",
+                        "xl": "64px",
+                        "container-max": "1200px",
+                        "md": "24px",
+                        "lg": "40px",
+                        "base": "8px"
+                    },
+                    "fontFamily": {
+                        "label-md": ["Plus Jakarta Sans"],
+                        "headline-md": ["Plus Jakarta Sans"],
+                        "body-lg": ["Plus Jakarta Sans"],
+                        "headline-lg": ["Plus Jakarta Sans"],
+                        "body-md": ["Plus Jakarta Sans"],
+                        "label-lg": ["Plus Jakarta Sans"],
+                        "display-lg": ["Plus Jakarta Sans"],
+                        "headline-lg-mobile": ["Plus Jakarta Sans"]
+                    },
+                    "fontSize": {
+                        "label-md": ["12px", { "lineHeight": "16px", "fontWeight": "600" }],
+                        "headline-md": ["24px", { "lineHeight": "32px", "fontWeight": "700" }],
+                        "body-lg": ["18px", { "lineHeight": "28px", "fontWeight": "500" }],
+                        "headline-lg": ["32px", { "lineHeight": "40px", "letterSpacing": "-0.01em", "fontWeight": "700" }],
+                        "body-md": ["16px", { "lineHeight": "24px", "fontWeight": "400" }],
+                        "label-lg": ["14px", { "lineHeight": "20px", "letterSpacing": "0.05em", "fontWeight": "700" }],
+                        "display-lg": ["48px", { "lineHeight": "56px", "letterSpacing": "-0.02em", "fontWeight": "800" }],
+                        "headline-lg-mobile": ["24px", { "lineHeight": "32px", "fontWeight": "700" }]
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-background text-on-background font-body-md min-h-screen flex flex-col antialiased selection:bg-tertiary-container selection:text-on-tertiary-container overflow-x-hidden">
+<!-- TopAppBar -->
+<header class="bg-surface dark:bg-on-background sticky docked full-width top-0 z-50 shadow-sm">
+<div class="flex justify-between items-center w-full px-md py-sm max-w-container-max mx-auto">
+<div class="font-display-lg text-display-lg text-primary dark:text-primary-fixed italic tracking-tighter">
+                LevelNLearn
+            </div>
+<div class="flex items-center gap-sm">
+<!-- Trailing Icon Actions -->
+<button class="p-2 text-on-surface-variant dark:text-outline-variant hover:text-primary dark:hover:text-primary-fixed transition-colors scale-95 active:scale-90 transition-transform rounded-full hover:bg-surface-container-high">
+<span class="material-symbols-outlined" data-icon="timer">timer</span>
+</button>
+<button class="p-2 text-on-surface-variant dark:text-outline-variant hover:text-primary dark:hover:text-primary-fixed transition-colors scale-95 active:scale-90 transition-transform rounded-full hover:bg-surface-container-high">
+<span class="material-symbols-outlined" data-icon="account_circle">account_circle</span>
+</button>
+<button class="p-2 text-on-surface-variant dark:text-outline-variant hover:text-primary dark:hover:text-primary-fixed transition-colors scale-95 active:scale-90 transition-transform rounded-full hover:bg-surface-container-high">
+<span class="material-symbols-outlined" data-icon="settings">settings</span>
+</button>
+</div>
+</div>
+</header>
+<main class="flex-grow flex flex-col items-center w-full px-md md:px-xl py-xl space-y-32">
+<!-- Hero Section -->
+<section class="w-full max-w-container-max flex flex-col items-center text-center space-y-md mt-lg relative">
+<!-- Decorative background glow -->
+<div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-3/4 h-3/4 bg-tertiary-container opacity-20 blur-[100px] rounded-full pointer-events-none"></div>
+<h1 class="font-display-lg text-display-lg text-on-surface z-10 max-w-4xl">
+                Master Any Subject with <span class="text-tertiary">AI-Powered Quizzes</span>
+</h1>
+<p class="font-body-lg text-body-lg text-on-surface-variant max-w-2xl z-10">
+                Transform real-time classroom engagement with dynamic, auto-generated assessments. Keep students on their toes with playful physics and instant feedback loops.
+            </p>
+<div class="pt-sm z-10">
+<button class="bg-tertiary-container text-on-tertiary-container font-label-lg text-label-lg px-xl py-md rounded-full neon-glow transition-all duration-300 scale-95 hover:scale-100 active:scale-90 border border-tertiary">
+                    Get Started for Free
+                </button>
+</div>
+</section>
+<!-- Product Preview (Bento Hero) -->
+<section class="w-full max-w-container-max relative z-10">
+<div class="bg-surface-container rounded-3xl p-md md:p-lg border border-outline-variant shadow-[0_20px_50px_rgba(0,0,0,0.5)] flex flex-col space-y-md relative overflow-hidden">
+<!-- Header of fake app -->
+<div class="flex justify-between items-center pb-sm border-b border-outline-variant">
+<div class="flex items-center gap-sm">
+<span class="material-symbols-outlined text-tertiary-container" data-icon="rocket_launch">rocket_launch</span>
+<span class="font-headline-md text-headline-md text-on-surface">Live: AP History Review</span>
+</div>
+<div class="bg-surface-container-high px-sm py-xs rounded-full font-label-md text-label-md text-tertiary flex items-center gap-xs border border-outline-variant">
+<span class="material-symbols-outlined text-[16px]" data-icon="timer">timer</span>
+                        00:14
+                    </div>
+</div>
+<h2 class="font-headline-lg text-headline-lg text-center py-md text-on-surface">
+                    What was the primary cause of the Boston Tea Party?
+                </h2>
+<!-- 2x2 Grid -->
+<div class="grid grid-cols-1 md:grid-cols-2 gap-sm">
+<div class="bg-surface-container-high border-2 border-outline-variant rounded-2xl p-lg flex items-center justify-center cursor-pointer hover:border-tertiary-container transition-colors duration-200 group">
+<span class="font-headline-md text-headline-md text-on-surface-variant group-hover:text-on-surface">Taxation without representation</span>
+</div>
+<div class="bg-tertiary-container/20 border-2 border-tertiary rounded-2xl p-lg flex items-center justify-center cursor-pointer relative overflow-hidden neon-glow scale-[0.98]">
+<span class="font-headline-md text-headline-md text-tertiary font-bold relative z-10">The Tea Act of 1773</span>
+<div class="absolute inset-0 bg-tertiary opacity-10"></div>
+<span class="material-symbols-outlined absolute top-sm right-sm text-tertiary" data-icon="check_circle" data-weight="fill">check_circle</span>
+</div>
+<div class="bg-surface-container-high border-2 border-outline-variant rounded-2xl p-lg flex items-center justify-center cursor-pointer hover:border-tertiary-container transition-colors duration-200 group">
+<span class="font-headline-md text-headline-md text-on-surface-variant group-hover:text-on-surface">The Intolerable Acts</span>
+</div>
+<div class="bg-surface-container-high border-2 border-outline-variant rounded-2xl p-lg flex items-center justify-center cursor-pointer hover:border-tertiary-container transition-colors duration-200 group">
+<span class="font-headline-md text-headline-md text-on-surface-variant group-hover:text-on-surface">Desire for independence</span>
+</div>
+</div>
+<!-- Progress Bar -->
+<div class="w-full h-3 bg-surface-container-highest rounded-full overflow-hidden mt-sm">
+<div class="h-full bg-gradient-to-r from-primary to-tertiary-container w-3/4 rounded-full"></div>
+</div>
+</div>
+</section>
+<!-- Feature Grid (Bento) -->
+<section class="w-full max-w-container-max grid grid-cols-1 md:grid-cols-3 gap-gutter">
+<!-- Feature 1 -->
+<div class="bg-surface-container rounded-3xl p-lg border border-outline-variant hover:border-tertiary-container transition-all duration-300 hover:-translate-y-2 hover:shadow-[0_10px_30px_rgba(158,95,170,0.15)] flex flex-col items-start gap-md">
+<div class="bg-tertiary-container/20 p-md rounded-2xl text-tertiary">
+<span class="material-symbols-outlined text-[32px]" data-icon="auto_awesome">auto_awesome</span>
+</div>
+<div>
+<h3 class="font-headline-md text-headline-md text-on-surface mb-xs">AI Quiz Generation</h3>
+<p class="font-body-md text-body-md text-on-surface-variant">Upload any PDF or paste a link. Our AI extracts key concepts and generates a balanced, engaging quiz in seconds.</p>
+</div>
+</div>
+<!-- Feature 2 -->
+<div class="bg-surface-container rounded-3xl p-lg border border-outline-variant hover:border-primary transition-all duration-300 hover:-translate-y-2 hover:shadow-[0_10px_30px_rgba(136,209,236,0.15)] flex flex-col items-start gap-md">
+<div class="bg-primary/20 p-md rounded-2xl text-primary">
+<span class="material-symbols-outlined text-[32px]" data-icon="leaderboard">leaderboard</span>
+</div>
+<div>
+<h3 class="font-headline-md text-headline-md text-on-surface mb-xs">Real-time Leaderboards</h3>
+<p class="font-body-md text-body-md text-on-surface-variant">Drive competitive engagement with live rankings, streak bonuses, and dynamic podium animations that students love.</p>
+</div>
+</div>
+<!-- Feature 3 -->
+<div class="bg-surface-container rounded-3xl p-lg border border-outline-variant hover:border-secondary transition-all duration-300 hover:-translate-y-2 hover:shadow-[0_10px_30px_rgba(212,192,215,0.15)] flex flex-col items-start gap-md">
+<div class="bg-secondary/20 p-md rounded-2xl text-secondary">
+<span class="material-symbols-outlined text-[32px]" data-icon="forum">forum</span>
+</div>
+<div>
+<h3 class="font-headline-md text-headline-md text-on-surface mb-xs">Class-Sourced Questions</h3>
+<p class="font-body-md text-body-md text-on-surface-variant">Empower students to submit their own questions to the pool. The highest-voted questions make it into the final boss round.</p>
+</div>
+</div>
+</section>
+</main>
+<!-- Footer -->
+<footer class="bg-surface-container-lowest w-full py-xl border-t border-outline-variant mt-xl">
+<div class="max-w-container-max mx-auto px-md md:px-xl grid grid-cols-1 md:grid-cols-4 gap-xl">
+<div class="col-span-1 md:col-span-1 flex flex-col gap-sm">
+<div class="font-display-lg text-display-lg text-primary italic tracking-tighter text-2xl">
+                    LevelNLearn
+                </div>
+<p class="font-body-md text-body-md text-on-surface-variant">
+                    Making learning dangerously fun.
+                </p>
+</div>
+<div class="flex flex-col gap-sm">
+<h4 class="font-label-lg text-label-lg text-on-surface uppercase tracking-widest text-xs opacity-70">Product</h4>
+<a class="font-body-md text-body-md text-on-surface-variant hover:text-primary transition-colors" href="#">Features</a>
+<a class="font-body-md text-body-md text-on-surface-variant hover:text-primary transition-colors" href="#">Pricing</a>
+<a class="font-body-md text-body-md text-on-surface-variant hover:text-primary transition-colors" href="#">Integrations</a>
+</div>
+<div class="flex flex-col gap-sm">
+<h4 class="font-label-lg text-label-lg text-on-surface uppercase tracking-widest text-xs opacity-70">Resources</h4>
+<a class="font-body-md text-body-md text-on-surface-variant hover:text-primary transition-colors" href="#">Help Center</a>
+<a class="font-body-md text-body-md text-on-surface-variant hover:text-primary transition-colors" href="#">Teacher Community</a>
+<a class="font-body-md text-body-md text-on-surface-variant hover:text-primary transition-colors" href="#">Blog</a>
+</div>
+<div class="flex flex-col gap-sm">
+<h4 class="font-label-lg text-label-lg text-on-surface uppercase tracking-widest text-xs opacity-70">Company</h4>
+<a class="font-body-md text-body-md text-on-surface-variant hover:text-primary transition-colors" href="#">About Us</a>
+<a class="font-body-md text-body-md text-on-surface-variant hover:text-primary transition-colors" href="#">Careers</a>
+<a class="font-body-md text-body-md text-on-surface-variant hover:text-primary transition-colors" href="#">Contact</a>
+</div>
+</div>
+<div class="max-w-container-max mx-auto px-md md:px-xl mt-xl pt-md border-t border-outline-variant flex flex-col md:flex-row justify-between items-center gap-sm">
+<p class="font-body-md text-body-md text-on-surface-variant text-sm">
+                © 2024 LevelNLearn Inc. All rights reserved.
+            </p>
+<div class="flex gap-md text-on-surface-variant">
+<span class="material-symbols-outlined hover:text-primary cursor-pointer transition-colors" data-icon="language">language</span>
+<span class="material-symbols-outlined hover:text-primary cursor-pointer transition-colors" data-icon="share">share</span>
+</div>
+</div>
+</footer>
+</body></html>

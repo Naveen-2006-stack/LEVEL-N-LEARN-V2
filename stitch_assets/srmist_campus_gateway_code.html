@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Authentication - LevelNLearn</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "surface-dim": "#05151e",
+                        "outline": "#899297",
+                        "tertiary": "#f4aeff",
+                        "on-tertiary-fixed-variant": "#692e76",
+                        "error": "#ffb4ab",
+                        "outline-variant": "#3f484c",
+                        "surface-bright": "#2c3b45",
+                        "inverse-surface": "#d4e5f1",
+                        "on-surface": "#d4e5f1",
+                        "on-tertiary-fixed": "#340042",
+                        "inverse-on-surface": "#23323c",
+                        "surface-container-high": "#1c2c35",
+                        "on-secondary-fixed": "#231728",
+                        "secondary-fixed": "#f1dcf4",
+                        "on-secondary-container": "#c6b2c9",
+                        "on-primary-container": "#00060a",
+                        "secondary-fixed-dim": "#d4c0d7",
+                        "tertiary-container": "#9e5faa",
+                        "on-surface-variant": "#bfc8cd",
+                        "primary-container": "#328099",
+                        "inverse-primary": "#07677f",
+                        "surface-container-highest": "#273740",
+                        "surface-container-lowest": "#011018",
+                        "primary-fixed": "#b7eaff",
+                        "on-error": "#690005",
+                        "on-primary": "#003544",
+                        "background": "#05151e",
+                        "primary-fixed-dim": "#88d1ec",
+                        "on-secondary-fixed-variant": "#504255",
+                        "on-primary-fixed-variant": "#004d61",
+                        "on-error-container": "#ffdad6",
+                        "tertiary-fixed": "#fdd6ff",
+                        "secondary-container": "#534457",
+                        "primary": "#88d1ec",
+                        "surface": "#05151e",
+                        "on-tertiary": "#4f155d",
+                        "surface-container": "#12212a",
+                        "on-tertiary-container": "#0e0014",
+                        "tertiary-fixed-dim": "#f4aeff",
+                        "on-secondary": "#392c3e",
+                        "surface-container-low": "#0d1d26",
+                        "secondary": "#d4c0d7",
+                        "on-primary-fixed": "#001f28",
+                        "surface-variant": "#273740",
+                        "on-background": "#d4e5f1",
+                        "error-container": "#93000a",
+                        "surface-tint": "#88d1ec",
+                        
+                        "electric-purple": "#b200ff",
+                        "neon-cyan": "#00f3ff",
+                        "neon-green": "#00ff33"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "2xl": "1rem",
+                        "3xl": "1.5rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "md": "24px",
+                        "container-max": "1200px",
+                        "xl": "64px",
+                        "lg": "40px",
+                        "base": "8px",
+                        "sm": "12px",
+                        "gutter": "24px",
+                        "xs": "4px"
+                    },
+                    "fontFamily": {
+                        "headline-lg-mobile": ["Plus Jakarta Sans"],
+                        "headline-lg": ["Plus Jakarta Sans"],
+                        "label-lg": ["Plus Jakarta Sans"],
+                        "body-md": ["Plus Jakarta Sans"],
+                        "display-lg": ["Plus Jakarta Sans"],
+                        "headline-md": ["Plus Jakarta Sans"],
+                        "label-md": ["Plus Jakarta Sans"],
+                        "body-lg": ["Plus Jakarta Sans"]
+                    },
+                    "fontSize": {
+                        "headline-lg-mobile": ["24px", {"lineHeight": "32px", "fontWeight": "700"}],
+                        "headline-lg": ["32px", {"lineHeight": "40px", "letterSpacing": "-0.01em", "fontWeight": "700"}],
+                        "label-lg": ["14px", {"lineHeight": "20px", "letterSpacing": "0.05em", "fontWeight": "700"}],
+                        "body-md": ["16px", {"lineHeight": "24px", "fontWeight": "400"}],
+                        "display-lg": ["48px", {"lineHeight": "56px", "letterSpacing": "-0.02em", "fontWeight": "800"}],
+                        "headline-md": ["24px", {"lineHeight": "32px", "fontWeight": "700"}],
+                        "label-md": ["12px", {"lineHeight": "16px", "fontWeight": "600"}],
+                        "body-lg": ["18px", {"lineHeight": "28px", "fontWeight": "500"}]
+                    },
+                    "backgroundImage": {
+                        "texture-grid": "linear-gradient(to right, rgba(255,255,255,0.02) 1px, transparent 1px), linear-gradient(to bottom, rgba(255,255,255,0.02) 1px, transparent 1px)"
+                    },
+                    "boxShadow": {
+                        "neon-purple": "0 0 15px rgba(178, 0, 255, 0.5), inset 0 0 10px rgba(178, 0, 255, 0.2)",
+                        "neon-green": "0 0 15px rgba(0, 255, 51, 0.5), inset 0 0 10px rgba(0, 255, 51, 0.2)",
+                        "neon-cyan": "0 0 15px rgba(0, 243, 255, 0.5), inset 0 0 10px rgba(0, 243, 255, 0.2)",
+                        "neon-red": "0 0 15px rgba(255, 0, 0, 0.5), inset 0 0 10px rgba(255, 0, 0, 0.2)",
+                        "glass": "0 8px 32px 0 rgba(0, 0, 0, 0.37)"
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        .glass-panel {
+            background: rgba(18, 33, 42, 0.6);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+        
+        .bg-texture {
+            background-image: 
+                radial-gradient(circle at 50% 0%, rgba(136, 209, 236, 0.15) 0%, transparent 50%),
+                radial-gradient(circle at 100% 100%, rgba(244, 174, 255, 0.1) 0%, transparent 50%),
+                linear-gradient(to right, rgba(255,255,255,0.02) 1px, transparent 1px), 
+                linear-gradient(to bottom, rgba(255,255,255,0.02) 1px, transparent 1px);
+            background-size: 100% 100%, 100% 100%, 40px 40px, 40px 40px;
+            background-color: #05151e;
+        }
+
+        .input-glow:focus {
+            box-shadow: 0 0 15px rgba(136, 209, 236, 0.3);
+            border-color: rgba(136, 209, 236, 0.8);
+        }
+
+        .shake {
+            animation: shake 0.4s cubic-bezier(.36,.07,.19,.97) both;
+        }
+
+        @keyframes shake {
+            10%, 90% { transform: translate3d(-1px, 0, 0); }
+            20%, 80% { transform: translate3d(2px, 0, 0); }
+            30%, 50%, 70% { transform: translate3d(-4px, 0, 0); }
+            40%, 60% { transform: translate3d(4px, 0, 0); }
+        }
+
+        .pulse-green {
+            animation: pulse-green 2s infinite;
+        }
+
+        @keyframes pulse-green {
+            0% { box-shadow: 0 0 0 0 rgba(0, 255, 51, 0.4); }
+            70% { box-shadow: 0 0 0 15px rgba(0, 255, 51, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(0, 255, 51, 0); }
+        }
+    </style>
+</head>
+<body class="bg-texture min-h-screen text-on-background flex flex-col items-center justify-center p-md overflow-x-hidden font-body-md text-body-md">
+<!-- Background Atmospheric Elements -->
+<div class="fixed top-[-20%] left-[-10%] w-[50%] h-[50%] rounded-full bg-electric-purple/10 blur-[120px] pointer-events-none z-0"></div>
+<div class="fixed bottom-[-20%] right-[-10%] w-[60%] h-[60%] rounded-full bg-neon-cyan/10 blur-[150px] pointer-events-none z-0"></div>
+<main class="w-full max-w-md relative z-10 flex flex-col items-center">
+<!-- Brand / Logo Area -->
+<div class="mb-lg text-center">
+<h1 class="font-display-lg text-display-lg text-primary italic tracking-tighter drop-shadow-md">LevelNLearn</h1>
+</div>
+<!-- The Glassmorphic Card -->
+<div class="w-full glass-panel rounded-3xl shadow-glass overflow-hidden relative">
+<!-- Segmented Toggle -->
+<div class="flex w-full border-b border-white/5 bg-surface-container/50">
+<button class="flex-1 py-sm font-label-lg text-label-lg text-primary border-b-2 border-primary bg-primary/10 transition-all duration-300" id="tab-signin" onclick="switchTab('signin')">
+                    Sign In
+                </button>
+<button class="flex-1 py-sm font-label-lg text-label-lg text-on-surface-variant hover:text-on-background transition-all duration-300" id="tab-register" onclick="switchTab('register')">
+                    Register
+                </button>
+</div>
+<div class="p-lg relative">
+<!-- Sign In Form -->
+<form class="flex flex-col gap-md transition-opacity duration-300 opacity-100 absolute inset-0 p-lg h-full" id="form-signin" onsubmit="event.preventDefault(); handleSignIn();">
+<div class="flex flex-col gap-xs">
+<label class="font-label-md text-label-md text-on-surface-variant ml-2">SRM Email</label>
+<div class="relative">
+<span class="material-symbols-outlined absolute left-sm top-1/2 -translate-y-1/2 text-outline">mail</span>
+<input class="w-full bg-surface-container-highest border border-outline-variant rounded-2xl py-sm pl-xl pr-sm text-on-background input-glow outline-none transition-all duration-200 font-body-md text-body-md" id="signin-email" oninput="validateEmail(this, 'signin-msg')" placeholder="netid@srmist.edu.in" type="email"/>
+</div>
+<p class="font-label-md text-label-md ml-2 h-4 transition-colors duration-200 text-transparent" id="signin-msg">.</p>
+</div>
+<div class="flex flex-col gap-xs">
+<label class="font-label-md text-label-md text-on-surface-variant ml-2">Password</label>
+<div class="relative">
+<span class="material-symbols-outlined absolute left-sm top-1/2 -translate-y-1/2 text-outline">lock</span>
+<input class="w-full bg-surface-container-highest border border-outline-variant rounded-2xl py-sm pl-xl pr-sm text-on-background input-glow outline-none transition-all duration-200 font-body-md text-body-md" placeholder="••••••••" type="password"/>
+</div>
+</div>
+<div class="flex justify-end mt-[-12px]">
+<a class="font-label-md text-label-md text-primary hover:text-primary-fixed-dim transition-colors" href="#">Forgot Password?</a>
+</div>
+<button class="mt-xs w-full bg-surface-dim border border-electric-purple text-on-background font-label-lg text-label-lg py-sm rounded-2xl shadow-neon-purple hover:bg-electric-purple/20 transition-all duration-300 active:scale-[0.98]" type="submit">
+                        Sign In &amp; Continue
+                    </button>
+</form>
+<!-- Register Form -->
+<form class="flex flex-col gap-md transition-opacity duration-300 opacity-0 pointer-events-none absolute inset-0 p-lg h-full" id="form-register" onsubmit="event.preventDefault();">
+<div class="flex flex-col gap-xs">
+<div class="relative">
+<span class="material-symbols-outlined absolute left-sm top-1/2 -translate-y-1/2 text-outline">person</span>
+<input class="w-full bg-surface-container-highest border border-outline-variant rounded-2xl py-sm pl-xl pr-sm text-on-background input-glow outline-none transition-all duration-200 font-body-md text-body-md" placeholder="Full Name" type="text"/>
+</div>
+</div>
+<div class="flex flex-col gap-xs">
+<div class="relative">
+<span class="material-symbols-outlined absolute left-sm top-1/2 -translate-y-1/2 text-outline">school</span>
+<input class="w-full bg-surface-container-highest border border-outline-variant rounded-2xl py-sm pl-xl pr-sm text-on-background input-glow outline-none transition-all duration-200 font-body-md text-body-md" id="reg-email" oninput="validateEmail(this, 'reg-msg')" placeholder="SRM Email Address" type="email"/>
+</div>
+<p class="font-label-md text-label-md ml-2 h-4 transition-colors duration-200 text-transparent hidden" id="reg-msg">.</p>
+</div>
+<div class="flex flex-col gap-xs">
+<div class="relative">
+<span class="material-symbols-outlined absolute left-sm top-1/2 -translate-y-1/2 text-outline">lock</span>
+<input class="w-full bg-surface-container-highest border border-outline-variant rounded-2xl py-sm pl-xl pr-sm text-on-background input-glow outline-none transition-all duration-200 font-body-md text-body-md" placeholder="Password" type="password"/>
+</div>
+</div>
+<div class="flex flex-col gap-xs">
+<div class="relative">
+<span class="material-symbols-outlined absolute left-sm top-1/2 -translate-y-1/2 text-outline">password</span>
+<input class="w-full bg-surface-container-highest border border-outline-variant rounded-2xl py-sm pl-xl pr-sm text-on-background input-glow outline-none transition-all duration-200 font-body-md text-body-md" placeholder="Confirm Password" type="password"/>
+</div>
+</div>
+<button class="mt-xs w-full bg-surface-dim border border-neon-green text-on-background font-label-lg text-label-lg py-sm rounded-2xl pulse-green hover:bg-neon-green/10 transition-all duration-300 active:scale-[0.98]" type="button">
+                        Create Campus Account
+                    </button>
+</form>
+<!-- Post-Auth State (Room Join) -->
+<div class="flex flex-col items-center justify-center gap-md transition-opacity duration-300 opacity-0 pointer-events-none absolute inset-0 p-lg h-full bg-surface-container/90 backdrop-blur-md rounded-b-3xl" id="state-room">
+<h2 class="font-headline-md text-headline-md font-bold text-center mb-sm bg-gradient-to-r from-primary to-tertiary bg-clip-text text-transparent">Welcome to the Arena</h2>
+<div class="w-full mb-md">
+<label class="font-label-md text-label-md text-center block text-on-surface-variant mb-xs">Enter Room PIN</label>
+<input class="w-full text-center bg-surface-container-lowest border-2 border-outline-variant rounded-2xl py-md font-display-lg text-display-lg text-on-background tracking-widest input-glow outline-none transition-all duration-200 focus:border-neon-cyan focus:shadow-neon-cyan" maxlength="6" placeholder="000000" type="text"/>
+</div>
+<button class="w-full bg-surface-dim border border-neon-green text-on-background font-label-lg text-label-lg py-md rounded-2xl shadow-neon-green hover:bg-neon-green/20 transition-all duration-300 active:scale-[0.98] mb-sm">
+                        Join Live Game
+                    </button>
+<button class="w-full bg-transparent border border-neon-cyan/50 text-neon-cyan font-label-lg text-label-lg py-sm rounded-2xl hover:bg-neon-cyan/10 hover:shadow-neon-cyan transition-all duration-300 active:scale-[0.98]">
+                        Host or Create Quiz
+                    </button>
+</div>
+<!-- Spacer to maintain card height during absolute positioning -->
+<div class="h-[320px] pointer-events-none opacity-0"></div>
+</div>
+</div>
+</main>
+<script>
+        function switchTab(tabName) {
+            const signinTab = document.getElementById('tab-signin');
+            const registerTab = document.getElementById('tab-register');
+            const signinForm = document.getElementById('form-signin');
+            const registerForm = document.getElementById('form-register');
+            const roomState = document.getElementById('state-room');
+
+            // Reset post-auth state just in case
+            roomState.style.opacity = '0';
+            roomState.style.pointerEvents = 'none';
+
+            if (tabName === 'signin') {
+                // Style tabs
+                signinTab.classList.add('text-primary', 'border-b-2', 'border-primary', 'bg-primary/10');
+                signinTab.classList.remove('text-on-surface-variant');
+                registerTab.classList.remove('text-primary', 'border-b-2', 'border-primary', 'bg-primary/10');
+                registerTab.classList.add('text-on-surface-variant');
+                
+                // Toggle forms
+                signinForm.style.opacity = '1';
+                signinForm.style.pointerEvents = 'auto';
+                registerForm.style.opacity = '0';
+                registerForm.style.pointerEvents = 'none';
+            } else {
+                // Style tabs
+                registerTab.classList.add('text-primary', 'border-b-2', 'border-primary', 'bg-primary/10');
+                registerTab.classList.remove('text-on-surface-variant');
+                signinTab.classList.remove('text-primary', 'border-b-2', 'border-primary', 'bg-primary/10');
+                signinTab.classList.add('text-on-surface-variant');
+                
+                // Toggle forms
+                registerForm.style.opacity = '1';
+                registerForm.style.pointerEvents = 'auto';
+                signinForm.style.opacity = '0';
+                signinForm.style.pointerEvents = 'none';
+            }
+        }
+
+        function validateEmail(inputElement, msgElementId) {
+            const email = inputElement.value;
+            const msgEl = document.getElementById(msgElementId);
+            
+            if (email.length === 0) {
+                msgEl.classList.add('text-transparent');
+                msgEl.classList.remove('text-error', 'text-neon-green', 'shadow-neon-red');
+                inputElement.classList.remove('border-error', 'shadow-neon-red', 'border-neon-green', 'shadow-neon-green');
+                msgEl.textContent = '.'; // Keeps height
+                return false;
+            }
+
+            msgEl.classList.remove('hidden', 'text-transparent');
+
+            if (email.endsWith('@srmist.edu.in')) {
+                // Valid
+                msgEl.innerHTML = '<span class="material-symbols-outlined text-[16px] align-middle mr-1">check_circle</span> Valid Campus Email';
+                msgEl.classList.remove('text-error', 'shadow-neon-red');
+                msgEl.classList.add('text-neon-green');
+                
+                inputElement.classList.remove('border-error', 'shadow-neon-red', 'border-outline-variant');
+                inputElement.classList.add('border-neon-green');
+                // Removed shadow from input to keep it cleaner, let the message carry the color
+                return true;
+            } else {
+                // Invalid
+                msgEl.innerHTML = '<span class="material-symbols-outlined text-[16px] align-middle mr-1">warning</span> Must be an official @srmist.edu.in email address';
+                msgEl.classList.remove('text-neon-green');
+                msgEl.classList.add('text-error', 'drop-shadow-[0_0_8px_rgba(255,180,171,0.8)]');
+                
+                inputElement.classList.remove('border-neon-green', 'border-outline-variant');
+                inputElement.classList.add('border-error', 'shadow-neon-red');
+                return false;
+            }
+        }
+
+        function handleSignIn() {
+            const emailInput = document.getElementById('signin-email');
+            const isValid = validateEmail(emailInput, 'signin-msg');
+
+            if (!isValid && emailInput.value.length > 0) {
+                emailInput.parentElement.classList.remove('shake');
+                void emailInput.parentElement.offsetWidth; // trigger reflow
+                emailInput.parentElement.classList.add('shake');
+                return;
+            }
+
+            // Simulate successful login and transition to room state
+            const signinForm = document.getElementById('form-signin');
+            const roomState = document.getElementById('state-room');
+            const tabs = document.querySelector('.flex.w-full.border-b');
+
+            signinForm.style.opacity = '0';
+            signinForm.style.pointerEvents = 'none';
+            tabs.style.opacity = '0';
+            tabs.style.pointerEvents = 'none';
+
+            setTimeout(() => {
+                roomState.style.opacity = '1';
+                roomState.style.pointerEvents = 'auto';
+            }, 300);
+        }
+    </script>
+</body></html>

@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LevelNLearn V2 - Anti-Cheat Engine Demo</title>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #0F172A;
+      --card-bg: #1E293B;
+      --primary: #7C3AED;
+      --accent: #FACC15;
+      --error: #EF4444;
+      --error-glow: rgba(239, 68, 68, 0.4);
+      --text: #F8FAFC;
+      --text-muted: #94A3B8;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Plus Jakarta Sans', sans-serif; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+      min-height: 100vh;
+    }
+
+    header {
+      text-align: center;
+      margin-bottom: 8px;
+    }
+
+    header h1 {
+      font-size: 28px;
+      font-weight: 800;
+      background: linear-gradient(135deg, #A855F7, #EC4899);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    header p {
+      color: var(--text-muted);
+      font-size: 14px;
+      margin-top: 4px;
+    }
+
+    .container {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 24px;
+      max-width: 1200px;
+      margin: 0 auto;
+      width: 100%;
+    }
+
+    .card {
+      background: var(--card-bg);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 16px;
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+    }
+
+    .card h2 {
+      font-size: 20px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .badge-live {
+      background: rgba(34, 197, 94, 0.2);
+      color: #22C55E;
+      border: 1px solid #22C55E;
+      font-size: 11px;
+      padding: 2px 8px;
+      border-radius: 999px;
+      font-weight: 700;
+    }
+
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    label { font-size: 12px; color: var(--text-muted); font-weight: 600; }
+    input, button {
+      padding: 12px 16px;
+      border-radius: 8px;
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      background: #0F172A;
+      color: var(--text);
+      font-size: 14px;
+    }
+
+    button {
+      background: var(--primary);
+      color: white;
+      border: none;
+      font-weight: 700;
+      cursor: pointer;
+      transition: transform 0.1s ease, filter 0.2s ease;
+    }
+
+    button:hover { filter: brightness(1.1); transform: translateY(-1px); }
+
+    .test-triggers {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    .btn-trigger {
+      background: #334155;
+      font-size: 12px;
+      padding: 8px 12px;
+    }
+
+    .btn-trigger:hover { background: #475569; }
+
+    .leaderboard-list {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .player-row {
+      background: #0F172A;
+      padding: 14px 16px;
+      border-radius: 12px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      transition: all 0.3s ease;
+    }
+
+    .player-info {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .player-name {
+      font-weight: 700;
+      font-size: 15px;
+    }
+
+    /* Glowing Red Violation Warning Badge */
+    .violation-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      background: rgba(239, 68, 68, 0.15);
+      color: var(--error);
+      border: 1px solid var(--error);
+      padding: 4px 10px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 800;
+      box-shadow: 0 0 12px var(--error-glow);
+      animation: pulseGlow 1.5s infinite alternate;
+    }
+
+    @keyframes pulseGlow {
+      from { box-shadow: 0 0 6px rgba(239, 68, 68, 0.4); }
+      to { box-shadow: 0 0 16px rgba(239, 68, 68, 0.9); }
+    }
+
+    .alert-box {
+      background: rgba(239, 68, 68, 0.1);
+      border-left: 4px solid var(--error);
+      padding: 12px;
+      border-radius: 8px;
+      font-size: 13px;
+      color: #FCA5A5;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      max-height: 180px;
+      overflow-y: auto;
+    }
+
+    .alert-item {
+      padding: 4px 0;
+      border-bottom: 1px dashed rgba(239, 68, 68, 0.2);
+    }
+
+    .score-pill {
+      font-weight: 800;
+      color: var(--accent);
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <h1>🛡️ LevelNLearn V2 - Anti-Cheat Monitoring Suite</h1>
+    <p>Real-time tab-switch, blur, viewport exit, and right-click breach detection with glowing host badges</p>
+  </header>
+
+  <div class="container">
+    
+    <!-- Player View Panel -->
+    <div class="card">
+      <h2>🎮 Player View <span class="badge-live" id="playerStatus">DISCONNECTED</span></h2>
+
+      <div class="form-group">
+        <label>Room PIN</label>
+        <input type="text" id="roomPin" value="888999" />
+      </div>
+
+      <div class="form-group">
+        <label>Player Username</label>
+        <input type="text" id="username" value="Alex_Gamer" />
+      </div>
+
+      <button id="btnConnectPlayer">Join Room as Player</button>
+
+      <div style="margin-top: 12px;">
+        <label>Simulate Anti-Cheat Breaches (or perform naturally in window):</label>
+        <div class="test-triggers" style="margin-top: 8px;">
+          <button class="btn-trigger" id="btnTriggerTab">Trigger Tab Switch</button>
+          <button class="btn-trigger" id="btnTriggerBlur">Trigger Window Blur</button>
+          <button class="btn-trigger" id="btnTriggerViewport">Trigger Exit Viewport</button>
+          <button class="btn-trigger" id="btnTriggerContextMenu">Trigger Right-Click</button>
+        </div>
+      </div>
+
+      <div id="playerLog" style="font-size: 12px; color: var(--text-muted); margin-top: 8px;">
+        Status: Click "Join Room" to attach Anti-Cheat monitor listeners.
+      </div>
+    </div>
+
+    <!-- Host View Panel -->
+    <div class="card">
+      <h2>👑 Host Live Leaderboard <span class="badge-live" id="hostStatus">DISCONNECTED</span></h2>
+
+      <button id="btnConnectHost" style="background: #2563EB;">Connect as Host Monitor</button>
+
+      <div style="margin-top: 12px;">
+        <label>Real-Time Host Violation Alerts:</label>
+        <div class="alert-box" id="hostAlertLog">
+          <div style="color: #94A3B8; font-style: italic;">No violation alerts received yet.</div>
+        </div>
+      </div>
+
+      <div style="margin-top: 12px;">
+        <label>Live Quiz Leaderboard with Warning Badges:</label>
+        <ul class="leaderboard-list" id="leaderboardList">
+          <li style="color: #94A3B8; font-size: 13px;">Waiting for room connection...</li>
+        </ul>
+      </div>
+    </div>
+
+  </div>
+
+  <script type="module">
+    import { AntiCheatMonitor } from './antiCheatClient.js';
+
+    let socket = null;
+    let antiCheat = null;
+    const roomPinInput = document.getElementById('roomPin');
+    const usernameInput = document.getElementById('username');
+    const playerStatus = document.getElementById('playerStatus');
+    const hostStatus = document.getElementById('hostStatus');
+    const playerLog = document.getElementById('playerLog');
+    const hostAlertLog = document.getElementById('hostAlertLog');
+    const leaderboardList = document.getElementById('leaderboardList');
+
+    const wsUrl = `ws://${window.location.host}/ws`;
+
+    document.getElementById('btnConnectPlayer').addEventListener('click', () => {
+      const pin = roomPinInput.value.trim();
+      const user = usernameInput.value.trim();
+      const playerId = `p_${Math.random().toString(36).substr(2, 6)}`;
+
+      socket = new WebSocket(wsUrl);
+
+      socket.onopen = () => {
+        playerStatus.textContent = 'CONNECTED';
+        playerStatus.style.borderColor = '#22C55E';
+
+        // Join Room
+        socket.send(JSON.stringify({
+          event: 'join_room',
+          roomPin: pin,
+          data: { playerId, username: user }
+        }));
+
+        // Attach Anti-Cheat Monitor
+        if (antiCheat) antiCheat.detach();
+        antiCheat = new AntiCheatMonitor({
+          socket,
+          roomPin: pin,
+          playerId,
+          debounceMs: 1000,
+          onViolationEmitted: (info) => {
+            playerLog.innerHTML = `<span style="color:#EF4444; font-weight:bold;">🚨 Triggered ${info.breachType} breach at ${new Date(info.timestamp).toLocaleTimeString()}</span>`;
+          }
+        });
+
+        antiCheat.attach();
+        playerLog.textContent = '🛡️ Anti-Cheat active! Try switching tabs, blurring window, or right clicking.';
+      };
+
+      socket.onmessage = (msg) => {
+        const payload = JSON.parse(msg.data);
+        if (payload.event === 'violation_ack') {
+          console.log('[Player] Violation Ack received:', payload.data);
+        }
+      };
+    });
+
+    document.getElementById('btnConnectHost').addEventListener('click', () => {
+      const pin = roomPinInput.value.trim();
+      const hostSocket = new WebSocket(wsUrl);
+
+      hostSocket.onopen = () => {
+        hostStatus.textContent = 'MONITORING';
+        hostStatus.style.borderColor = '#2563EB';
+
+        // Host joins room
+        hostSocket.send(JSON.stringify({
+          event: 'join_room',
+          roomPin: pin,
+          data: { playerId: 'host_admin', username: 'Host_Admin' }
+        }));
+      };
+
+      hostSocket.onmessage = (msg) => {
+        const payload = JSON.parse(msg.data);
+
+        if (payload.event === 'host_violation_alert') {
+          const d = payload.data;
+          const time = new Date(d.timestamp).toLocaleTimeString();
+          const alertItem = document.createElement('div');
+          alertItem.className = 'alert-item';
+          alertItem.innerHTML = `⚠️ <b>${d.username}</b> triggered <b>${d.breachType}</b> breach (Total: ${d.totalViolations}) at ${time}`;
+          
+          if (hostAlertLog.querySelector('div[style*="italic"]')) {
+            hostAlertLog.innerHTML = '';
+          }
+          hostAlertLog.prepend(alertItem);
+        }
+
+        if (payload.event === 'leaderboard_update' || payload.event === 'player_joined') {
+          const leaderboard = payload.data.leaderboard || [];
+          renderLeaderboard(leaderboard);
+        }
+      };
+    });
+
+    function renderLeaderboard(leaderboard) {
+      leaderboardList.innerHTML = '';
+      if (leaderboard.length === 0) {
+        leaderboardList.innerHTML = '<li style="color: #94A3B8;">No players in room</li>';
+        return;
+      }
+
+      leaderboard.forEach(p => {
+        const li = document.createElement('li');
+        li.className = 'player-row';
+
+        const warningBadge = p.hasViolation || p.violationsCount > 0
+          ? `<span class="violation-badge">🚨 ${p.violationsCount} Violation${p.violationsCount > 1 ? 's' : ''}</span>`
+          : '<span style="color:#22C55E; font-size:12px; font-weight:600;">Clean</span>';
+
+        li.innerHTML = `
+          <div class="player-info">
+            <span class="player-name">${p.username}</span>
+            ${warningBadge}
+          </div>
+          <div class="score-pill">${p.score} PTS</div>
+        `;
+        leaderboardList.appendChild(li);
+      });
+    }
+
+    // Direct simulation buttons
+    document.getElementById('btnTriggerTab').onclick = () => antiCheat && antiCheat.triggerViolation('TAB_SWITCH');
+    document.getElementById('btnTriggerBlur').onclick = () => antiCheat && antiCheat.triggerViolation('WINDOW_BLUR');
+    document.getElementById('btnTriggerViewport').onclick = () => antiCheat && antiCheat.triggerViolation('VIEWPORT_EXIT');
+    document.getElementById('btnTriggerContextMenu').onclick = () => antiCheat && antiCheat.triggerViolation('CONTEXT_MENU');
+  </script>
+</body>
+</html>
