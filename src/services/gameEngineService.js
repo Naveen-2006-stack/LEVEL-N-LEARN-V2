@@ -1,9 +1,32 @@
+import crypto from 'crypto';
 import { redis } from '../config/redis.js';
 import { supabase } from '../config/supabase.js';
 import { quizService } from './quizService.js';
+import { signAuthToken, verifyAuthToken } from '../utils/cryptoUtils.js';
 
 // Resilient in-memory session registry for zero-downtime offline/test execution
 export const inMemorySessions = new Map();
+
+/**
+ * Per-player join tokens (Module: Guest Identity Security)
+ * Issued once at /game/join and required on every subsequent player action
+ * (submitAnswer, violation reports). This is the single source of truth for
+ * "who is this player" -- a client-supplied playerId is NEVER trusted for
+ * authorization. The token is a cryptographically signed, unguessable secret
+ * bound to (roomPin, playerId); knowing another player's playerId (visible
+ * in the shared leaderboard) is not sufficient to act as them.
+ */
+function signPlayerToken(roomPin, playerId) {
+  return signAuthToken({ type: 'player', roomPin, playerId });
+}
+
+function verifyPlayerToken(token, roomPin) {
+  const decoded = verifyAuthToken(token);
+  if (!decoded || decoded.type !== 'player' || decoded.roomPin !== roomPin || !decoded.playerId) {
+    return null;
+  }
+  return decoded;
+}
 
 export const gameEngineService = {
   /**
@@ -21,23 +44,18 @@ export const gameEngineService = {
     let dbSessionId = 'mock_session_id';
     const isMock = quizId === 'q_demo1' || quizId === 'q_demo2' || quizId === 'q_001' || quizId === 'q_002' || quizId?.startsWith('q_ai_');
 
-    // Always register in in-memory session store
-    inMemorySessions.set(pin, {
-      session_id: dbSessionId,
-      quiz_id: quizId || '',
-      host_id: hostId,
-      status: 'lobby',
-      current_question: '0',
-      created_at: Date.now().toString(),
-    });
-
-    if (!isMock) {
-      // Insert active session stub in Supabase
+    // A real game_sessions DB row is created even for demo/mock-quiz-content
+    // sessions (quiz_id left null when it's a synthetic id like "q_001" that
+    // has no real row to reference) -- WITHOUT this, dbSessionId stays the
+    // literal string "mock_session_id", which is not a valid UUID and makes
+    // teardownSession's session_results/game_sessions writes fail silently,
+    // so final scores for demo-quiz games are never actually persisted.
+    try {
       const { data: dbSession, error: dbErr } = await supabase
         .from('game_sessions')
         .insert([
           {
-            quiz_id: quizId || null,
+            quiz_id: isMock ? null : (quizId || null),
             host_id: hostId,
             room_pin: pin,
             status: 'active',
@@ -48,10 +66,27 @@ export const gameEngineService = {
         .single();
 
       if (dbErr) {
-        throw new Error(`Failed to create database game session: ${dbErr.message}`);
+        if (!isMock) {
+          throw new Error(`Failed to create database game session: ${dbErr.message}`);
+        }
+        // Mock/demo session + DB unreachable: degrade to in-memory-only.
+      } else {
+        dbSessionId = dbSession.id;
       }
-      dbSessionId = dbSession.id;
+    } catch (e) {
+      if (!isMock) throw e;
     }
+
+    // Register in in-memory session store (resolved AFTER the DB write above,
+    // so it reflects the real dbSessionId rather than the stale placeholder)
+    inMemorySessions.set(pin, {
+      session_id: dbSessionId,
+      quiz_id: quizId || '',
+      host_id: hostId,
+      status: 'lobby',
+      current_question: '0',
+      created_at: Date.now().toString(),
+    });
 
     // Set up initial state in Redis
     const metaKey = `room:${pin}:meta`;
@@ -183,9 +218,13 @@ export const gameEngineService = {
   },
 
   /**
-   * Registers player into room lobby in Redis.
+   * Registers player into room lobby in Redis and issues a signed per-player
+   * join token. playerId is NEVER accepted from the client -- it is either
+   * resumed (via a previously issued token, or a known account->player
+   * mapping for logged-in users) or freshly minted server-side, so a client
+   * can never choose/guess/squat another player's identity.
    */
-  async joinPlayer(roomPin, { playerId, username, userId }) {
+  async joinPlayer(roomPin, { username, userId, rejoinPlayerId, rejoinToken }) {
     const metaKey = `room:${roomPin}:meta`;
     const exists = await redis.exists(metaKey);
     if (!exists) {
@@ -196,17 +235,56 @@ export const gameEngineService = {
     const isHost = userId === meta.host_id;
 
     const playersKey = `room:${roomPin}:players`;
-    if (!isHost) {
-      await redis.hset(playersKey, playerId, username || `Player_${playerId.slice(0, 4)}`);
+    const accountPlayersKey = `room:${roomPin}:account_players`;
 
-      // Initialize baseline scores and streaks
-      await redis.hsetnx(`room:${roomPin}:scores`, playerId, 0);
-      await redis.hsetnx(`room:${roomPin}:streaks`, playerId, 0);
-      await redis.hsetnx(`room:${roomPin}:action_points`, playerId, 0);
+    let playerId = null;
+    let playerToken = null;
+
+    if (!isHost) {
+      // 1. Resume an existing player session if a valid, still-registered
+      //    join token is presented (browser refresh / reconnect).
+      if (rejoinPlayerId && rejoinToken) {
+        const decoded = verifyPlayerToken(rejoinToken, roomPin);
+        if (decoded && decoded.playerId === rejoinPlayerId) {
+          const stillRegistered = await redis.hexists(playersKey, rejoinPlayerId);
+          if (stillRegistered) {
+            playerId = rejoinPlayerId;
+          }
+        }
+      }
+
+      // 2. Resume via a known authenticated-account mapping (covers reconnects
+      //    that lost client-side token storage but still hold their account session).
+      if (!playerId && userId) {
+        const mapped = await redis.hget(accountPlayersKey, userId);
+        if (mapped) {
+          const stillRegistered = await redis.hexists(playersKey, mapped);
+          if (stillRegistered) {
+            playerId = mapped;
+          }
+        }
+      }
+
+      // 3. Otherwise mint a brand-new, server-generated player identity.
+      if (!playerId) {
+        playerId = crypto.randomUUID();
+        await redis.hset(playersKey, playerId, username || `Player_${playerId.slice(0, 4)}`);
+        await redis.hsetnx(`room:${roomPin}:scores`, playerId, 0);
+        await redis.hsetnx(`room:${roomPin}:streaks`, playerId, 0);
+        await redis.hsetnx(`room:${roomPin}:action_points`, playerId, 0);
+        if (userId) {
+          await redis.hset(accountPlayersKey, userId, playerId);
+        }
+      } else if (username) {
+        // Keep the display name fresh on rejoin.
+        await redis.hset(playersKey, playerId, username);
+      }
+
+      playerToken = signPlayerToken(roomPin, playerId);
     }
 
     const activePlayers = await redis.hgetall(playersKey);
-    
+
     // Fetch cached questions (stripped of correct_option for clients)
     let questions = [];
     try {
@@ -221,10 +299,11 @@ export const gameEngineService = {
       }
     } catch (e) {}
 
-    return { 
-      roomPin, 
-      playerId, 
-      username, 
+    return {
+      roomPin,
+      playerId,
+      playerToken,
+      username,
       players: activePlayers,
       gameState: {
         status: meta.status || 'lobby',
@@ -254,6 +333,10 @@ export const gameEngineService = {
       current_question: '0'
     });
 
+    if (inMemorySessions.has(roomPin)) {
+      inMemorySessions.set(roomPin, { ...inMemorySessions.get(roomPin), status: 'active', current_question: '0' });
+    }
+
     return { status: 'active', currentQuestionIndex: 0 };
   },
 
@@ -282,10 +365,21 @@ export const gameEngineService = {
   },
   /**
    * Anti-Cheat Engine: Records player violation breach in Redis.
+   * Identity is derived exclusively from the signed player join token.
    */
-  async recordViolation(roomPin, { playerId, breachType, timestamp }) {
-    if (!playerId || !breachType) {
-      throw new Error('playerId and breachType are required to record a violation');
+  async recordViolation(roomPin, { playerToken, breachType, timestamp }) {
+    const decoded = verifyPlayerToken(playerToken, roomPin);
+    if (!decoded) {
+      throw new Error('Unauthorized: invalid or missing player session token');
+    }
+    const playerId = decoded.playerId;
+    const isRegisteredPlayer = await redis.hexists(`room:${roomPin}:players`, playerId);
+    if (!isRegisteredPlayer) {
+      throw new Error('Unauthorized: player has not joined this room');
+    }
+
+    if (!breachType) {
+      throw new Error('breachType is required to record a violation');
     }
 
     const breachObj = {
@@ -310,7 +404,37 @@ export const gameEngineService = {
    * Module 4: Live Game State & Adaptive Engine (Answer Processing)
    * All score calculation, streaks, and AP points handled strictly in Redis.
    */
-  async processAnswerSubmission(roomPin, { playerId, questionIndex, selectedOption, responseTimeMs }) {
+  async processAnswerSubmission(roomPin, { playerToken, questionIndex, selectedOption, responseTimeMs }) {
+    // 0. Identity comes ONLY from the signed player join token -- never from
+    // a client-supplied playerId. This is what makes impersonation via a
+    // known/guessed playerId (e.g. from the shared leaderboard) impossible:
+    // an attacker would also need the unguessable secret token.
+    const decoded = verifyPlayerToken(playerToken, roomPin);
+    if (!decoded) {
+      throw new Error('Unauthorized: invalid or missing player session token');
+    }
+    const playerId = decoded.playerId;
+
+    const meta = await redis.hgetall(`room:${roomPin}:meta`);
+    if (!meta || Object.keys(meta).length === 0) {
+      throw new Error('Room does not exist or has expired');
+    }
+    // Reject submissions from players who never joined this room, or whose
+    // registration was cleared by teardown (a token from an ended session
+    // stops working the moment the room's player hash is deleted).
+    const isRegisteredPlayer = await redis.hexists(`room:${roomPin}:players`, playerId);
+    if (!isRegisteredPlayer) {
+      throw new Error('Unauthorized: player has not joined this room');
+    }
+
+    // Reject answers for a question that isn't the room's current active question
+    // (prevents pre-submitting/backdating answers for questions outside the live round).
+    const activeIndex = parseInt(meta.current_question || '0', 10);
+    const qIndex = parseInt(questionIndex, 10);
+    if (!Number.isInteger(qIndex) || qIndex !== activeIndex) {
+      throw new Error('Answer rejected: question is not currently active');
+    }
+
     // 1. Prevent duplicate submissions per question using an atomic Redis SET operation
     const answeredKey = `room:${roomPin}:answered:${questionIndex}`;
     const addedCount = await redis.sadd(answeredKey, playerId);
@@ -335,6 +459,11 @@ export const gameEngineService = {
       console.warn(`[Game Engine] Failed to validate answer server-side:`, e.message);
     }
 
+    // Server-clamped response time: never trust the client's raw value, which can
+    // otherwise be set to 0/negative to farm an unbounded speed-bonus multiplier.
+    const rawRt = Number(responseTimeMs);
+    const safeResponseTimeMs = Number.isFinite(rawRt) ? Math.min(Math.max(rawRt, 0), 20000) : 20000;
+
     const streaksKey = `room:${roomPin}:streaks`;
     const scoresKey = `room:${roomPin}:scores`;
     const apKey = `room:${roomPin}:action_points`;
@@ -358,7 +487,7 @@ export const gameEngineService = {
       }
 
       // Base points calculation: 1000 max base points scaled by response speed (within 20s)
-      const speedBonus = Math.max(0, 20000 - (responseTimeMs || 5000)) / 20;
+      const speedBonus = Math.max(0, 20000 - safeResponseTimeMs) / 20;
       const basePoints = Math.round(500 + speedBonus);
       pointsAwarded = Math.round(basePoints * scoreMultiplier);
 
@@ -428,12 +557,16 @@ export const gameEngineService = {
    * Module 4: Session Teardown
    * Flushes final cached leaderboard & player stats (including violation_logs) from Redis into Supabase.
    */
-  async teardownSession(roomPin) {
+  async teardownSession(roomPin, hostId) {
     const metaKey = `room:${roomPin}:meta`;
     const meta = await redis.hgetall(metaKey);
 
     if (!meta || !meta.session_id) {
       throw new Error(`Active session meta not found for room PIN ${roomPin}`);
+    }
+
+    if (!hostId || meta.host_id !== hostId) {
+      throw new Error('Unauthorized: only the room host can end this session');
     }
 
     const sessionId = meta.session_id;
@@ -496,6 +629,15 @@ export const gameEngineService = {
     }
 
     await redis.del(...keysToDelete);
+
+    // Keep the in-memory session registry (used as the last-resort PIN lookup
+    // fallback for mock/demo quizzes that never get a real DB row) in sync with
+    // teardown, otherwise validate-pin can report a torn-down room as still
+    // "lobby" forever -- a Redis/in-memory state disagreement visible to users.
+    if (inMemorySessions.has(roomPin)) {
+      const memSession = inMemorySessions.get(roomPin);
+      inMemorySessions.set(roomPin, { ...memSession, status: 'completed' });
+    }
 
     console.log(`[Game Engine] Session ${sessionId} (PIN ${roomPin}) successfully tore down & flushed violation_logs to DB`);
 

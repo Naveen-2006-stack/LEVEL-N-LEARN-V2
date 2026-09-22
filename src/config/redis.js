@@ -139,6 +139,15 @@ class InMemoryRedisMock extends EventEmitter {
     return count;
   }
 
+  async hexists(key, field) {
+    if (this._isExpired(key)) {
+      await this.del(key);
+      return 0;
+    }
+    const map = this.hashes.get(key);
+    return map && map.has(field) ? 1 : 0;
+  }
+
   async sismember(key, member) {
     if (this._isExpired(key)) {
       await this.del(key);

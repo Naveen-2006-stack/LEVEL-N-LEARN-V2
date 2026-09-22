@@ -3,7 +3,20 @@ import { generateAndPersistQuiz } from '../services/llm/llmEngine.js';
 import { gameEngineService, inMemorySessions } from '../services/gameEngineService.js';
 import { supabase } from '../config/supabase.js';
 import { redis } from '../config/redis.js';
-import { signAuthToken, hashPassword, verifyPassword } from '../utils/cryptoUtils.js';
+import { signAuthToken, hashPassword, verifyPassword, verifyAuthToken } from '../utils/cryptoUtils.js';
+
+/**
+ * Extracts and verifies the caller's session token from either the
+ * `Authorization: Bearer <token>` header or a `token` field in the body.
+ * This is the ONLY source of truth for "who is making this request" --
+ * client-supplied userId/hostId/creatorId fields are never trusted.
+ */
+function getVerifiedIdentity(request) {
+  const header = request.headers?.authorization;
+  const headerToken = header && header.startsWith('Bearer ') ? header.slice(7) : null;
+  const token = headerToken || request.body?.token || null;
+  return verifyAuthToken(token);
+}
 
 export const quizController = {
   /**
@@ -207,7 +220,6 @@ export const quizController = {
             roomPin: cleanPin,
             sessionId: meta.session_id || 'live_session',
             status,
-            hostId: meta.host_id,
           },
         });
       }
@@ -236,7 +248,6 @@ export const quizController = {
               roomPin: cleanPin,
               sessionId: dbSession.id,
               status: dbSession.status || 'lobby',
-              hostId: dbSession.host_id,
             },
           });
         }
@@ -260,7 +271,6 @@ export const quizController = {
             roomPin: cleanPin,
             sessionId: memSession.session_id || 'live_session',
             status: memSession.status || 'lobby',
-            hostId: memSession.host_id,
           },
         });
       }
@@ -282,19 +292,20 @@ export const quizController = {
 
   /**
    * POST /api/quizzes - Create manual quiz
+   * Authenticated users only. The creator is always the verified token
+   * identity -- never a client-supplied creatorUsername/creatorId.
    */
   async createQuiz(request, reply) {
     try {
-      const { creatorUsername, title, description, questions } = request.body || {};
-
-      let creatorId = null;
-      if (creatorUsername) {
-        const user = await quizService.ensureUser(creatorUsername);
-        creatorId = user.id;
+      const decoded = getVerifiedIdentity(request);
+      if (!decoded || !decoded.userId) {
+        return reply.code(401).send({ success: false, error: 'Authentication required to create a quiz' });
       }
 
+      const { title, description, questions } = request.body || {};
+
       const createdQuiz = await quizService.createQuiz({
-        creatorId,
+        creatorId: decoded.userId,
         title,
         description,
         questions,
@@ -355,10 +366,27 @@ export const quizController = {
 
   /**
    * PUT /api/quizzes/:id - Update quiz and nested questions
+   * Authenticated owner (quiz.creator_id) or super_admin only.
    */
   async updateQuiz(request, reply) {
     try {
+      const decoded = getVerifiedIdentity(request);
+      if (!decoded || !decoded.userId) {
+        return reply.code(401).send({ success: false, error: 'Authentication required to modify a quiz' });
+      }
+
       const { id } = request.params;
+      const owner = await quizService.getQuizOwner(id);
+      if (!owner) {
+        return reply.code(404).send({ success: false, error: 'Quiz not found' });
+      }
+
+      const isOwner = owner.creator_id === decoded.userId;
+      const isAdmin = decoded.role === 'super_admin';
+      if (!isOwner && !isAdmin) {
+        return reply.code(403).send({ success: false, error: 'You do not have permission to modify this quiz' });
+      }
+
       const { title, description, questions } = request.body || {};
       const updated = await quizService.updateQuiz(id, { title, description, questions });
       return reply.send({
@@ -375,10 +403,27 @@ export const quizController = {
 
   /**
    * DELETE /api/quizzes/:id - Delete quiz
+   * Authenticated owner (quiz.creator_id) or super_admin only.
    */
   async deleteQuiz(request, reply) {
     try {
+      const decoded = getVerifiedIdentity(request);
+      if (!decoded || !decoded.userId) {
+        return reply.code(401).send({ success: false, error: 'Authentication required to delete a quiz' });
+      }
+
       const { id } = request.params;
+      const owner = await quizService.getQuizOwner(id);
+      if (!owner) {
+        return reply.code(404).send({ success: false, error: 'Quiz not found' });
+      }
+
+      const isOwner = owner.creator_id === decoded.userId;
+      const isAdmin = decoded.role === 'super_admin';
+      if (!isOwner && !isAdmin) {
+        return reply.code(403).send({ success: false, error: 'You do not have permission to delete this quiz' });
+      }
+
       const result = await quizService.deleteQuiz(id);
       return reply.send({
         success: true,
@@ -397,7 +442,12 @@ export const quizController = {
    */
   async generateAIQuiz(request, reply) {
     try {
-      const { creatorUsername, lessonNotes, topic, numQuestions } = request.body || {};
+      const decoded = getVerifiedIdentity(request);
+      if (!decoded || !decoded.userId) {
+        return reply.code(401).send({ success: false, error: 'Authentication required to generate a quiz' });
+      }
+
+      const { lessonNotes, topic, numQuestions } = request.body || {};
 
       if (!lessonNotes && !topic) {
         return reply.code(400).send({
@@ -406,14 +456,8 @@ export const quizController = {
         });
       }
 
-      let creatorId = null;
-      if (creatorUsername) {
-        const user = await quizService.ensureUser(creatorUsername);
-        creatorId = user.id;
-      }
-
       const result = await generateAndPersistQuiz({
-        creatorId,
+        creatorId: decoded.userId,
         lessonNotes: lessonNotes || topic,
         topic: topic || 'Custom Topic',
         numQuestions: parseInt(numQuestions || '5', 10),
@@ -437,21 +481,16 @@ export const quizController = {
    */
   async createGameSession(request, reply) {
     try {
-      const { hostUsername, quizId, customRoomPin } = request.body || {};
-
-      if (!hostUsername) {
-        return reply.code(400).send({
-          success: false,
-          error: 'hostUsername is required to spin up a live game room',
-        });
+      const decoded = getVerifiedIdentity(request);
+      if (!decoded || !decoded.userId) {
+        return reply.code(401).send({ success: false, error: 'Authentication required to host a live session' });
       }
 
-      const cleanUsername = hostUsername.split('@')[0];
-      const hostUser = await quizService.ensureUser(cleanUsername);
+      const { quizId, customRoomPin } = request.body || {};
 
       const session = await gameEngineService.createSession({
         quizId,
-        hostId: hostUser.id,
+        hostId: decoded.userId,
         roomPin: customRoomPin,
       });
 

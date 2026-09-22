@@ -43,10 +43,15 @@ test.describe('LevelNLearn Join Quiz & PIN Validation Suite', () => {
   });
 
   test('Valid Room PIN successfully validates with backend and routes to Arena Lobby', async ({ page, request }) => {
-    // 1. Create a real live session via API
+    // 1. Create a real live session via API -- session creation now requires
+    // a verified host session token (hostUsername alone is no longer trusted).
+    const loginRes = await request.post('http://localhost:4000/api/auth/srmist-login', {
+      data: { email: 'quizsrm@gmail.com', password: 'adminpass' },
+    });
+    const login = await loginRes.json();
     const sessionRes = await request.post('http://localhost:4000/api/sessions', {
       data: {
-        hostUsername: 'quizsrm@gmail.com',
+        token: login.data.token,
         quizId: 'q_001',
         customRoomPin: '849201',
       },
@@ -74,10 +79,14 @@ test.describe('LevelNLearn Join Quiz & PIN Validation Suite', () => {
   });
 
   test('Landing Page Quick Join validates PIN with backend before routing', async ({ page, request }) => {
-    // Spin up active room
+    // Spin up active room (requires a verified host session token)
+    const loginRes = await request.post('http://localhost:4000/api/auth/srmist-login', {
+      data: { email: 'quizsrm@gmail.com', password: 'adminpass' },
+    });
+    const login = await loginRes.json();
     await request.post('http://localhost:4000/api/sessions', {
       data: {
-        hostUsername: 'quizsrm@gmail.com',
+        token: login.data.token,
         quizId: 'q_002',
         customRoomPin: '739102',
       },

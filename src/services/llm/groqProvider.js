@@ -13,14 +13,14 @@ Generate a high-quality quiz based on the user text.
 Return ONLY valid JSON matching this structure exactly (no markdown block wrappers or extra text):
 ${JSON.stringify(jsonSchemaHint, null, 2)}`;
 
-  console.log('[LLM Engine] Attempting generation with Groq (Llama-3.3-70b-versatile)...');
+  console.log('[LLM Engine] Attempting generation with Groq (openai/gpt-oss-120b)...');
 
   const completion = await groq.chat.completions.create({
     messages: [
       { role: 'system', content: systemMessage },
       { role: 'user', content: prompt },
     ],
-    model: 'llama-3.3-70b-versatile',
+    model: 'openai/gpt-oss-120b',
     temperature: 0.5,
     response_format: { type: 'json_object' },
   });

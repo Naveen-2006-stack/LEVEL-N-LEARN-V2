@@ -47,6 +47,24 @@ export function Arena({ roomPin }) {
   
   // Local Player State
   const [playerId, setPlayerId] = useState(null);
+  const playerTokenRef = useRef(null); // secret join token, never rendered/broadcast
+
+  // Persist {playerId, playerToken} per-room so a refresh resumes the SAME
+  // player identity/score instead of minting a brand-new (0-score) player.
+  const sessionStorageKey = `arena_player_${roomPin}`;
+  const loadStoredPlayerSession = () => {
+    try {
+      const raw = sessionStorage.getItem(sessionStorageKey);
+      return raw ? JSON.parse(raw) : null;
+    } catch (e) {
+      return null;
+    }
+  };
+  const storePlayerSession = (pId, pToken) => {
+    try {
+      sessionStorage.setItem(sessionStorageKey, JSON.stringify({ playerId: pId, playerToken: pToken }));
+    } catch (e) {}
+  };
   const [hasAnswered, setHasAnswered] = useState(false);
   const [selectedOption, setSelectedOption] = useState(null);
   const [answerFeedback, setAnswerFeedback] = useState(null); // { isCorrect, pointsAwarded }
@@ -79,17 +97,21 @@ export function Arena({ roomPin }) {
       if (status === 'SUBSCRIBED') {
         setConnectionState('CONNECTED');
         
-        // Join room via HTTP
+        // Join room via HTTP. If we have a stored player session for this
+        // room (refresh/reconnect), present it so the server resumes the
+        // SAME playerId/score instead of minting a fresh one.
+        const stored = loadStoredPlayerSession();
         try {
           const res = await fetch('/api/game/join', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
               roomPin,
-              playerId: username,
               username,
               userId: currentUser?.id,
               token: currentUser?.token,
+              rejoinPlayerId: stored?.playerId,
+              rejoinToken: stored?.playerToken,
             }),
           });
           const data = await res.json();
@@ -124,13 +146,13 @@ export function Arena({ roomPin }) {
   const { isObscured, resetObscured } = useAntiCheat({
     enabled: !isHost,
     onViolation: (breachType) => {
-      if (connectionState === 'CONNECTED' && !isHost) {
+      if (connectionState === 'CONNECTED' && !isHost && playerTokenRef.current) {
         fetch('/api/game/violation', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             roomPin,
-            playerId: username,
+            playerToken: playerTokenRef.current,
             username: username,
             breachType,
             timestamp: Date.now(),
@@ -141,11 +163,25 @@ export function Arena({ roomPin }) {
   });
 
   const handleServerEvent = (payload) => {
-    const { event, data, message } = payload;
-    
+    // Two call shapes land here: (1) real Supabase Realtime broadcasts, whose
+    // actual message body is nested under `payload.payload` (per the
+    // supabase-js broadcast callback contract -- NOT `payload.data`), and
+    // (2) this component's own direct/synthetic dispatches (e.g. the initial
+    // room_state_sync after HTTP join, or optimistic post-submit updates),
+    // which already pass `{ event, data }` directly. Without this fallback,
+    // every real broadcast from OTHER clients silently no-ops (`data` is
+    // undefined), so nobody ever sees another player's actions in real time.
+    const { event, message } = payload;
+    const data = payload.data !== undefined ? payload.data : payload.payload;
+    if (!data) return;
+
     switch (event) {
       case 'room_state_sync':
         setPlayerId(data.playerId);
+        if (data.playerToken) {
+          playerTokenRef.current = data.playerToken;
+          storePlayerSession(data.playerId, data.playerToken);
+        }
         setPlayers(data.activePlayers || {});
         setGameState(data.gameState);
         if (data.gameState?.status === 'active') {
@@ -232,7 +268,7 @@ export function Arena({ roomPin }) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           roomPin,
-          playerId: username,
+          playerToken: playerTokenRef.current,
           questionIndex: gameState.currentQuestionIndex,
           selectedOption: -1,
           responseTimeMs: 15000,
@@ -262,7 +298,7 @@ export function Arena({ roomPin }) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         roomPin,
-        playerId: username,
+        playerToken: playerTokenRef.current,
         questionIndex: gameState.currentQuestionIndex,
         selectedOption: optionIndex,
         responseTimeMs,
@@ -282,7 +318,7 @@ export function Arena({ roomPin }) {
     fetch('/api/game/host-action', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ roomPin, actionType: 'start_game', hostId: gameState.hostId }),
+      body: JSON.stringify({ roomPin, actionType: 'start_game', token: currentUser?.token }),
     });
   };
 
@@ -290,7 +326,7 @@ export function Arena({ roomPin }) {
     fetch('/api/game/host-action', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ roomPin, actionType: 'next_question', hostId: gameState.hostId }),
+      body: JSON.stringify({ roomPin, actionType: 'next_question', token: currentUser?.token }),
     });
   };
 
@@ -298,7 +334,7 @@ export function Arena({ roomPin }) {
     fetch('/api/game/end', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ roomPin }),
+      body: JSON.stringify({ roomPin, token: currentUser?.token }),
     });
   };
   

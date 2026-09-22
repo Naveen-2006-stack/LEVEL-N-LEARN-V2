@@ -12,7 +12,7 @@ Generate a high-quality quiz based on the user text.
 Return ONLY valid JSON matching this structure exactly (no markdown formatting, no text outside JSON):
 ${JSON.stringify(jsonSchemaHint, null, 2)}`;
 
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${config.llm.geminiApiKey}`;
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key=${config.llm.geminiApiKey}`;
 
   const response = await fetch(url, {
     method: 'POST',

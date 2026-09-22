@@ -109,7 +109,45 @@ export const quizService = {
       // Supabase query failed, fallback to memory
     }
 
-    return inMemoryUsers.get(cleanEmail) || null;
+    const mem = inMemoryUsers.get(cleanEmail);
+    if (!mem) return null;
+
+    // The seeded fixture user has a non-UUID synthetic id (e.g. "usr_host_001")
+    // that only exists in this in-memory map, not as a real row in Supabase.
+    // Any downstream write that uses it as a foreign key (e.g. quizzes.creator_id)
+    // would fail. Lazily persist it on first use so the rest of the app can
+    // treat it as a normal, DB-backed user from here on.
+    //
+    // Upsert on `username` (not a plain insert): some of these fixture
+    // usernames may already have a bare row in Supabase from before the
+    // email/password_hash/etc. columns existed on this table (a plain insert
+    // would then fail on the username UNIQUE constraint and we'd silently
+    // fall back to the fake synthetic id forever). Upserting fills in the
+    // missing columns on that existing row instead, keeping its real id.
+    try {
+      const { data: upserted, error: upsertErr } = await supabase
+        .from('users')
+        .upsert([{
+          username: mem.username,
+          email: cleanEmail,
+          full_name: mem.full_name,
+          password_hash: mem.password_hash,
+          salt: mem.salt,
+          role: mem.role,
+          is_verified: mem.is_verified !== false,
+        }], { onConflict: 'username' })
+        .select()
+        .single();
+
+      if (!upsertErr && upserted) {
+        inMemoryUsers.set(cleanEmail, upserted);
+        return upserted;
+      }
+    } catch (e) {
+      // Supabase unreachable -- keep operating purely in-memory.
+    }
+
+    return mem;
   },
 
   /**
@@ -241,13 +279,11 @@ export const quizService = {
       .single();
 
     if (quizError) {
-      // Return mock created quiz if supabase offline
-      return {
-        id: `q_mock_${Date.now()}`,
-        title,
-        description,
-        questions: questions.map((q, idx) => ({ id: `qm_${idx}`, ...q })),
-      };
+      // NEVER fabricate a fake "success" quiz here: a mock/in-memory quiz
+      // object with no real database row can't be fetched, updated, deleted,
+      // or safely launched into a live session later. A real write failure
+      // must be reported as a real failure.
+      throw new Error(`Failed to create quiz: ${quizError.message}`);
     }
 
     // 2. Format Questions with quiz_id
@@ -274,6 +310,23 @@ export const quizService = {
       ...quiz,
       questions: createdQuestions,
     };
+  },
+
+  /**
+   * Lightweight ownership lookup used for authorization checks (no nested
+   * questions fetched). Returns null if the quiz does not exist in the DB
+   * (e.g. a seeded/mock quiz id that was never actually persisted).
+   */
+  async getQuizOwner(quizId) {
+    if (!quizId) return null;
+    const { data, error } = await supabase
+      .from('quizzes')
+      .select('id, creator_id')
+      .eq('id', quizId)
+      .single();
+
+    if (error || !data) return null;
+    return data;
   },
 
   /**

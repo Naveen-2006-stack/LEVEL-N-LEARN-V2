@@ -35,10 +35,14 @@ test.describe('LevelNLearn Security, Anti-Cheat, and Authority Suite', () => {
   });
 
   test('Client payload question data never leaks correct_option answer keys', async ({ page, request }) => {
-    // 1. Create a session via API
+    // 1. Create a session via API (requires a verified host session token)
+    const loginRes = await request.post('http://localhost:4000/api/auth/srmist-login', {
+      data: { email: 'proctor@srmist.edu.in', password: 'pass123' },
+    });
+    const login = await loginRes.json();
     const sessionRes = await request.post('http://localhost:4000/api/sessions', {
       data: {
-        hostUsername: 'proctor@srmist.edu.in',
+        token: login.data.token,
         quizId: 'q_001',
       },
     });
@@ -52,6 +56,51 @@ test.describe('LevelNLearn Security, Anti-Cheat, and Authority Suite', () => {
       const quizData = await quizRes.json();
       expect(quizData).toBeDefined();
     }
+  });
+
+  test('Player identity cannot be spoofed via a known playerId; host actions require a verified host token', async ({ request }) => {
+    const hostLogin = await (await request.post('http://localhost:4000/api/auth/srmist-login', {
+      data: { email: 'hostuser@srmist.edu.in', password: 'password123' },
+    })).json();
+    const hostToken = hostLogin.data.token;
+
+    const session = await (await request.post('http://localhost:4000/api/sessions', {
+      data: { token: hostToken, quizId: 'q_demo1' },
+    })).json();
+    const roomPin = session.data.roomPin;
+
+    // Unauthenticated host-action forgery must fail
+    const forgedStart = await request.post('http://localhost:4000/api/game/host-action', {
+      data: { roomPin, actionType: 'start_game' },
+    });
+    expect(forgedStart.status()).toBe(401);
+
+    await request.post('http://localhost:4000/api/game/host-action', {
+      data: { roomPin, actionType: 'start_game', token: hostToken },
+    });
+
+    const p1 = await (await request.post('http://localhost:4000/api/game/join', {
+      data: { roomPin, username: 'p1@srmist.edu.in' },
+    })).json();
+    const p2 = await (await request.post('http://localhost:4000/api/game/join', {
+      data: { roomPin, username: 'p2@srmist.edu.in' },
+    })).json();
+
+    // Attacker knows p2's playerId (visible via leaderboard/broadcasts) but not their token
+    const impersonation = await request.post('http://localhost:4000/api/game/submit', {
+      data: { roomPin, playerId: p2.data.playerId, questionIndex: 0, selectedOption: 1, responseTimeMs: 1000 },
+    });
+    const impersonationJson = await impersonation.json();
+    expect(impersonationJson.success).not.toBe(true);
+
+    // Legitimate submission using the real player's own token succeeds
+    const legit = await request.post('http://localhost:4000/api/game/submit', {
+      data: { roomPin, playerToken: p2.data.playerToken, questionIndex: 0, selectedOption: 1, responseTimeMs: 1000 },
+    });
+    const legitJson = await legit.json();
+    expect(legitJson.success).toBe(true);
+
+    await request.post('http://localhost:4000/api/game/end', { data: { roomPin, token: hostToken } });
   });
 
   test('Anti-Cheat Engine triggers proctoring overlay on blur event', async ({ page }) => {

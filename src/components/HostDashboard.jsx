@@ -106,40 +106,33 @@ export function HostDashboard() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          creatorUsername: currentUser?.email || 'netid@srmist.edu.in',
+          token: currentUser?.token,
           topic,
           numQuestions: parseInt(numQuestions, 10),
         }),
       });
 
       const result = await res.json();
-      if (result.success && result.data) {
-        setQuizList((prev) => [result.data, ...prev]);
-        setStatusMessage(`🎉 Quiz generated successfully! (${result.message})`);
-        setTopic('');
-      } else {
-        const newQuiz = {
-          id: `q_ai_${Date.now()}`,
-          title: `AI: ${topic}`,
-          count: numQuestions,
+      if (res.ok && result.success && result.data?.quiz) {
+        // The API returns { quiz: {...}, providerUsed, questionCount }; flatten
+        // it into the shape this list renders (id/title/count/topic).
+        const generatedQuiz = {
+          id: result.data.quiz.id,
+          title: result.data.quiz.title,
+          count: result.data.questionCount,
           topic,
           difficulty: 'Medium',
         };
-        setQuizList((prev) => [newQuiz, ...prev]);
-        setStatusMessage(`🎉 Quiz generated successfully! (AI Multi-LLM Engine)`);
+        setQuizList((prev) => [generatedQuiz, ...prev]);
+        setStatusMessage(`🎉 Quiz generated successfully via ${result.data.providerUsed}!`);
         setTopic('');
+      } else {
+        // Never fabricate a fake success -- a quiz that doesn't actually exist
+        // in the database can't be launched, so show the real failure instead.
+        setStatusMessage(`⚠️ Quiz generation failed: ${result.error || 'Unknown error from the AI generation service.'}`);
       }
     } catch (err) {
-      const newQuiz = {
-        id: `q_ai_${Date.now()}`,
-        title: `AI: ${topic}`,
-        count: numQuestions,
-        topic,
-        difficulty: 'Medium',
-      };
-      setQuizList((prev) => [newQuiz, ...prev]);
-      setStatusMessage(`🎉 Quiz generated successfully!`);
-      setTopic('');
+      setStatusMessage(`⚠️ Quiz generation failed: ${err.message || 'Network or server error.'}`);
     } finally {
       setIsGenerating(false);
     }
@@ -149,19 +142,24 @@ export function HostDashboard() {
   const handleHostRoom = async (quiz) => {
     const pin = Math.floor(100000 + Math.random() * 900000).toString();
     try {
-      await fetch('/api/sessions', {
+      const res = await fetch('/api/sessions', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          hostUsername: currentUser?.email || 'netid@srmist.edu.in',
+          token: currentUser?.token,
           quizId: quiz.id,
           customRoomPin: pin,
         }),
       });
+      const result = await res.json();
+      if (!res.ok || !result.success) {
+        setStatusMessage(`⚠️ Failed to spin up game room: ${result.error || 'Unknown error'}`);
+        return;
+      }
       setActiveSessionPin(pin);
       navigate(`/arena/${pin}`);
     } catch (err) {
-      setStatusMessage('Failed to spin up game room: ' + err.message);
+      setStatusMessage('⚠️ Failed to spin up game room: ' + err.message);
     }
   };
 
@@ -362,10 +360,17 @@ export function HostDashboard() {
 
         {/* STATUS ALERT */}
         {statusMessage && (
-          <div className="error-alert" style={{ background: 'rgba(16, 185, 129, 0.12)', borderColor: 'rgba(16, 185, 129, 0.3)', color: '#34D399', marginBottom: '24px' }}>
-            <CheckCircle2 className="w-5 h-5 shrink-0 text-emerald-400" />
-            <span>{statusMessage}</span>
-          </div>
+          statusMessage.startsWith('⚠️') ? (
+            <div className="error-alert" style={{ marginBottom: '24px' }}>
+              <AlertCircle className="w-5 h-5 shrink-0 text-red-400" />
+              <span>{statusMessage}</span>
+            </div>
+          ) : (
+            <div className="error-alert" style={{ background: 'rgba(16, 185, 129, 0.12)', borderColor: 'rgba(16, 185, 129, 0.3)', color: '#34D399', marginBottom: '24px' }}>
+              <CheckCircle2 className="w-5 h-5 shrink-0 text-emerald-400" />
+              <span>{statusMessage}</span>
+            </div>
+          )
         )}
 
         {/* TWO COLUMN WORKSPACE */}
