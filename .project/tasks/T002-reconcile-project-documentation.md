@@ -3,9 +3,9 @@ id: T002
 title: Reconcile project overview documentation with Supabase Realtime architecture
 wave: 1
 deps: []
-status: pending
-agent: null
-base: null
+status: done
+agent: build_T002
+base: 40d8c4d2268173d758b5d9ec2c20bba4fbe09a1a
 worktree: null
 task_branch: null
 files:
@@ -53,3 +53,5 @@ Heavy: no
 
 - 2026-11-13 — created by planner
 - 2026-11-13 — plan defect repaired: added .gitignore to files to anchor product build/ rule
+- 2026-11-13 — build_T002 completed implementation: reconciled Project_Overview.md and anchored /build/ in .gitignore
+- 2026-11-13 — orchestrator Verify (sidecar gsd-path-verify/task-t002-verify): pass, exit 0
