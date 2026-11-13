@@ -37,3 +37,4 @@ it on completion. If this file and the artifacts disagree, the artifacts win
 - 2026-11-13 — plan — planning started
 - 2026-11-13 — plan — plan approved
 - 2026-11-13 — build — build started
+- 2026-11-13 — build — plan defect repaired: added .gitignore to T002 files to anchor product build/ ignore rule
