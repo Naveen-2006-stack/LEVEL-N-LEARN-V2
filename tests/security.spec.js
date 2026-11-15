@@ -125,4 +125,121 @@ test.describe('LevelNLearn Security, Anti-Cheat, and Authority Suite', () => {
     // The Anti-Cheat overlay or event is active in the player hook
     expect(page.url()).toContain('/arena/');
   });
+
+  test('E1: Empty or whitespace room PIN sent to /api/game/join is rejected with HTTP 400', async ({ request }) => {
+    // 1. Empty string
+    const emptyRes = await request.post('http://localhost:4000/api/game/join', {
+      data: { roomPin: '', username: 'testuser' },
+    });
+    expect(emptyRes.status()).toBe(400);
+    const emptyJson = await emptyRes.json();
+    expect(emptyJson.error).toContain('Room PIN is required');
+
+    // 2. Whitespace-only string
+    const whitespaceRes = await request.post('http://localhost:4000/api/game/join', {
+      data: { roomPin: '   ', username: 'testuser' },
+    });
+    expect(whitespaceRes.status()).toBe(400);
+    const whitespaceJson = await whitespaceRes.json();
+    expect(whitespaceJson.error).toContain('Room PIN is required');
+
+    // 3. Null room PIN
+    const nullRes = await request.post('http://localhost:4000/api/game/join', {
+      data: { roomPin: null, username: 'testuser' },
+    });
+    expect(nullRes.status()).toBe(400);
+  });
+
+  test('E2: Multiple players joining concurrently receive distinct player IDs without state corruption', async ({ request }) => {
+    // Create a host session
+    const hostLogin = await (await request.post('http://localhost:4000/api/auth/srmist-login', {
+      data: { email: 'hostuser@srmist.edu.in', password: 'password123' },
+    })).json();
+    const hostToken = hostLogin.data.token;
+
+    const session = await (await request.post('http://localhost:4000/api/sessions', {
+      data: { token: hostToken, quizId: 'q_demo1' },
+    })).json();
+    const roomPin = session.data.roomPin;
+
+    // Concurrently join 5 players
+    const playerNames = ['alpha', 'beta', 'gamma', 'delta', 'epsilon'];
+    const joinPromises = playerNames.map((name) =>
+      request.post('http://localhost:4000/api/game/join', {
+        data: { roomPin, username: `${name}@srmist.edu.in` },
+      })
+    );
+
+    const responses = await Promise.all(joinPromises);
+    const jsonList = await Promise.all(responses.map((r) => r.json()));
+
+    // All should succeed
+    for (const res of responses) {
+      expect(res.status()).toBe(200);
+    }
+
+    // All player IDs must be distinct
+    const playerIds = jsonList.map((j) => j.data.playerId);
+    const uniquePlayerIds = new Set(playerIds);
+    expect(uniquePlayerIds.size).toBe(5);
+
+    // Final player's response should reflect all 5 active players in the lobby
+    const lastJoin = jsonList[jsonList.length - 1];
+    expect(Object.keys(lastJoin.data.activePlayers).length).toBe(5);
+
+    await request.post('http://localhost:4000/api/game/end', { data: { roomPin, token: hostToken } });
+  });
+
+  test('E6 & N5: Forged/expired tokens or non-host users attempting host actions return 401/403', async ({ request }) => {
+    const hostLogin = await (await request.post('http://localhost:4000/api/auth/srmist-login', {
+      data: { email: 'hostuser@srmist.edu.in', password: 'password123' },
+    })).json();
+    const hostToken = hostLogin.data.token;
+
+    const studentLogin = await (await request.post('http://localhost:4000/api/auth/srmist-login', {
+      data: { email: 'examinee@srmist.edu.in', password: 'pass123' },
+    })).json();
+    const studentToken = studentLogin.data.token;
+
+    const session = await (await request.post('http://localhost:4000/api/sessions', {
+      data: { token: hostToken, quizId: 'q_demo1' },
+    })).json();
+    const roomPin = session.data.roomPin;
+
+    // 1. Forged token on host-action returns 401
+    const forgedAction = await request.post('http://localhost:4000/api/game/host-action', {
+      data: { roomPin, actionType: 'start_game', token: 'forged.jwt.token' },
+    });
+    expect(forgedAction.status()).toBe(401);
+
+    // 2. Non-host authenticated user attempting host action returns 403 Forbidden (N5)
+    const nonHostStart = await request.post('http://localhost:4000/api/game/host-action', {
+      data: { roomPin, actionType: 'start_game', token: studentToken },
+    });
+    expect(nonHostStart.status()).toBe(403);
+
+    // 3. Non-host attempting next_question returns 403
+    const nonHostNext = await request.post('http://localhost:4000/api/game/host-action', {
+      data: { roomPin, actionType: 'next_question', token: studentToken },
+    });
+    expect(nonHostNext.status()).toBe(403);
+
+    // 4. Non-host attempting to end session returns 403
+    const nonHostEnd = await request.post('http://localhost:4000/api/game/end', {
+      data: { roomPin, token: studentToken },
+    });
+    expect(nonHostEnd.status()).toBe(403);
+
+    // 5. Forged token on /api/game/join with claimed userId returns 401
+    const forgedJoin = await request.post('http://localhost:4000/api/game/join', {
+      data: { roomPin, username: 'imposter', userId: 'some-user-id', token: 'bad-token' },
+    });
+    expect(forgedJoin.status()).toBe(401);
+
+    // 6. Legitimate host ends session successfully
+    const hostEnd = await request.post('http://localhost:4000/api/game/end', {
+      data: { roomPin, token: hostToken },
+    });
+    expect(hostEnd.status()).toBe(200);
+  });
 });

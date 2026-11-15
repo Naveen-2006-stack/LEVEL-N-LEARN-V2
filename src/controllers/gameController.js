@@ -15,21 +15,28 @@ async function broadcastToRoom(roomPin, event, data) {
 export const gameController = {
   joinRoom: async (request, reply) => {
     try {
-      const { roomPin, username, userId, token, rejoinPlayerId, rejoinToken } = request.body;
+      const { roomPin, username, userId, token, rejoinPlayerId, rejoinToken } = request.body || {};
 
-      // SECURE AUTHORIZATION CHECK (account identity, used for host detection
-      // and to let a logged-in user recover their same player slot on reconnect)
-      const decoded = verifyAuthToken(token);
-      if (userId && (!decoded || decoded.userId !== userId)) {
-        return reply.code(401).send({ error: 'Unauthorized: Invalid or missing token' });
+      // 1. Validate roomPin: must be present, non-empty string without whitespace-only (E1)
+      if (!roomPin || typeof roomPin !== 'string' || !roomPin.trim()) {
+        return reply.code(400).send({ error: 'Room PIN is required and cannot be empty' });
+      }
+      const trimmedPin = roomPin.trim();
+
+      // 2. Validate token if token or userId is provided (E6)
+      if (token || userId) {
+        const decoded = verifyAuthToken(token);
+        if (!decoded || (userId && decoded.userId !== userId)) {
+          return reply.code(401).send({ error: 'Unauthorized: Invalid or missing token' });
+        }
       }
 
       // playerId is NEVER accepted from the client -- gameEngineService.joinPlayer
       // resumes it from rejoinToken/account mapping or mints a fresh one.
-      const result = await gameEngineService.joinPlayer(roomPin, { username, userId, rejoinPlayerId, rejoinToken });
+      const result = await gameEngineService.joinPlayer(trimmedPin, { username, userId, rejoinPlayerId, rejoinToken });
 
       // Broadcast to all players in room (never includes the secret playerToken)
-      await broadcastToRoom(roomPin, 'player_joined', {
+      await broadcastToRoom(trimmedPin, 'player_joined', {
         playerId: result.playerId,
         username: result.username,
         totalPlayers: Object.keys(result.players).length,
@@ -50,18 +57,24 @@ export const gameController = {
         }
       });
     } catch (err) {
+      if (err.message?.includes('does not exist') || err.message?.includes('expired')) {
+        return reply.code(404).send({ error: err.message });
+      }
       return reply.code(500).send({ error: `Failed to join room: ${err.message}` });
     }
   },
 
   hostAction: async (request, reply) => {
     try {
-      const { roomPin, actionType, token } = request.body;
+      const { roomPin, actionType, token } = request.body || {};
 
-      // SECURE AUTHORIZATION CHECK: the acting hostId is NEVER trusted from the
-      // request body (it is broadcast to every player as gameState.hostId, so a
-      // client-supplied hostId is trivially forgeable). It must be derived from a
-      // cryptographically verified session token instead.
+      // Validate roomPin
+      if (!roomPin || typeof roomPin !== 'string' || !roomPin.trim()) {
+        return reply.code(400).send({ error: 'Room PIN is required and cannot be empty' });
+      }
+      const trimmedPin = roomPin.trim();
+
+      // SECURE AUTHORIZATION CHECK (E6, N5): derived from a verified session token
       const decoded = verifyAuthToken(token);
       if (!decoded || !decoded.userId) {
         return reply.code(401).send({ error: 'Unauthorized: Invalid or missing host session token' });
@@ -69,16 +82,16 @@ export const gameController = {
       const hostId = decoded.userId;
 
       if (actionType === 'start_game') {
-        const result = await gameEngineService.startGame(roomPin, hostId);
-        await broadcastToRoom(roomPin, 'game_started', {
+        const result = await gameEngineService.startGame(trimmedPin, hostId);
+        await broadcastToRoom(trimmedPin, 'game_started', {
           status: result.status,
           currentQuestionIndex: result.currentQuestionIndex,
           message: 'Game started by host'
         });
         return reply.send({ success: true });
       } else if (actionType === 'next_question') {
-        const result = await gameEngineService.nextQuestion(roomPin, hostId);
-        await broadcastToRoom(roomPin, 'question_active', {
+        const result = await gameEngineService.nextQuestion(trimmedPin, hostId);
+        await broadcastToRoom(trimmedPin, 'question_active', {
           status: result.status,
           currentQuestionIndex: result.currentQuestionIndex,
           message: 'Next question is active'
@@ -88,13 +101,14 @@ export const gameController = {
         return reply.code(400).send({ error: 'Unknown host action type' });
       }
     } catch (err) {
-      return reply.code(err.message?.includes('Unauthorized') ? 403 : 500).send({ error: `Host action failed: ${err.message}` });
+      const isAuthErr = err.message?.includes('Unauthorized') || err.message?.includes('invalid room');
+      return reply.code(isAuthErr ? 403 : 500).send({ error: `Host action failed: ${err.message}` });
     }
   },
 
   violationDetected: async (request, reply) => {
     try {
-      const { roomPin, playerToken, breachType, timestamp, username } = request.body;
+      const { roomPin, playerToken, breachType, timestamp, username } = request.body || {};
 
       if (!playerToken || !breachType) {
         return reply.code(400).send({ error: 'Missing playerToken or breachType' });
@@ -134,9 +148,18 @@ export const gameController = {
 
   submitAnswer: async (request, reply) => {
     try {
-      const { roomPin, playerToken, questionIndex, selectedOption, responseTimeMs } = request.body;
+      const { roomPin, playerToken, questionIndex, selectedOption, responseTimeMs } = request.body || {};
 
-      const result = await gameEngineService.processAnswerSubmission(roomPin, {
+      if (!roomPin || typeof roomPin !== 'string' || !roomPin.trim()) {
+        return reply.code(400).send({ error: 'Room PIN is required and cannot be empty' });
+      }
+      const trimmedPin = roomPin.trim();
+
+      if (!playerToken) {
+        return reply.code(401).send({ error: 'Unauthorized: Missing playerToken' });
+      }
+
+      const result = await gameEngineService.processAnswerSubmission(trimmedPin, {
         playerToken,
         questionIndex,
         selectedOption,
@@ -144,8 +167,8 @@ export const gameController = {
       });
 
       // Broadcast updated live leaderboard to room
-      const leaderboard = await gameEngineService.getLeaderboard(roomPin);
-      await broadcastToRoom(roomPin, 'leaderboard_update', { leaderboard });
+      const leaderboard = await gameEngineService.getLeaderboard(trimmedPin);
+      await broadcastToRoom(trimmedPin, 'leaderboard_update', { leaderboard });
 
       // Return the result directly to the submitting player
       return reply.send({
@@ -165,7 +188,12 @@ export const gameController = {
 
   endSession: async (request, reply) => {
     try {
-      const { roomPin, token } = request.body;
+      const { roomPin, token } = request.body || {};
+
+      if (!roomPin || typeof roomPin !== 'string' || !roomPin.trim()) {
+        return reply.code(400).send({ error: 'Room PIN is required and cannot be empty' });
+      }
+      const trimmedPin = roomPin.trim();
 
       // SECURE AUTHORIZATION CHECK: only the verified host may terminate a session.
       // roomPin alone is not a secret (6-digit PIN, brute-forceable) so this must
@@ -175,9 +203,9 @@ export const gameController = {
         return reply.code(401).send({ error: 'Unauthorized: Invalid or missing host session token' });
       }
 
-      const result = await gameEngineService.teardownSession(roomPin, decoded.userId);
+      const result = await gameEngineService.teardownSession(trimmedPin, decoded.userId);
 
-      await broadcastToRoom(roomPin, 'game_over', {
+      await broadcastToRoom(trimmedPin, 'game_over', {
         message: 'Game Session Ended by Host',
         finalLeaderboard: result.finalLeaderboard,
       });

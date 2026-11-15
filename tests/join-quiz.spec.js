@@ -68,8 +68,10 @@ test.describe('LevelNLearn Join Quiz & PIN Validation Suite', () => {
     await page.waitForURL('**/dashboard');
 
     // 3. Enter valid room PIN in Join Quiz card
+    await page.waitForSelector('input[placeholder="ENTER 6-DIGIT PIN"]');
     const pinInput = page.locator('input[placeholder="ENTER 6-DIGIT PIN"]');
     await pinInput.fill('849201');
+    await expect(pinInput).toHaveValue('849201');
     await page.click('#submit-join-pin-btn');
 
     // 4. Verify successful transition to live arena

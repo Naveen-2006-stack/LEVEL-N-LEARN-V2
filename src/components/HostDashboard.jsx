@@ -48,8 +48,7 @@ export function HostDashboard() {
   // Super Admin Check
   const isSuperAdmin = 
     currentUser?.email === 'quizsrm@gmail.com' || 
-    currentUser?.role === 'super_admin' || 
-    currentUser?.user_metadata?.full_name === 'Naveen Manikandan';
+    currentUser?.role === 'super_admin';
 
   const fetchQuizzes = async () => {
     try {
@@ -339,7 +338,6 @@ export function HostDashboard() {
                     <button
                       id="submit-join-pin-btn"
                       type="submit"
-                      onClick={handleJoinQuiz}
                       disabled={joinStatus === 'validating'}
                       className="btn-green-action"
                       style={{ padding: '16px 24px', borderRadius: '12px', fontSize: '15px', flexShrink: 0 }}

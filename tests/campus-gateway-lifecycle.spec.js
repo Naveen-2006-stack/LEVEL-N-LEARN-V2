@@ -94,4 +94,80 @@ test.describe('SRMIST Campus Gateway — Complete Existing Account & Lifecycle S
     await page.waitForURL('**/dashboard');
     await expect(page.locator('text=Welcome back')).toBeVisible();
   });
+
+  test('Section 2: Complete Live Quiz Lifecycle — PIN Entry, Lobby Join, Host Launch, Question Progression, and Final Session Results & Leaderboard', async ({ browser }) => {
+    test.setTimeout(60000);
+    const hostContext = await browser.newContext();
+    const studentContext = await browser.newContext();
+    const hostPage = await hostContext.newPage();
+    const studentPage = await studentContext.newPage();
+
+    try {
+      // 1. Host logs in
+      await hostPage.goto('/');
+      await hostPage.click('button:has-text("Sign In")');
+      await hostPage.waitForSelector('input[type="email"]');
+      await hostPage.fill('input[type="email"]', 'hostuser@srmist.edu.in');
+      await hostPage.fill('input[type="password"]', 'password123');
+      await hostPage.click('button:has-text("Sign In & Continue")');
+      await hostPage.waitForURL('**/dashboard');
+
+      // 2. Host creates a live room
+      await hostPage.locator('button:has-text("Host Live")').first().click();
+      await hostPage.waitForURL('**/arena/*');
+      const pin = hostPage.url().split('/').pop();
+      expect(pin).toMatch(/^\d{6}$/);
+
+      // Verify lobby state and zero-player restriction
+      await expect(hostPage.locator('text=Waiting for Host to Launch')).toBeVisible();
+      await expect(hostPage.locator('#zero-players-warning')).toBeVisible();
+      await expect(hostPage.locator('#start-arena-btn')).toBeDisabled();
+
+      // 3. Student logs in
+      await studentPage.goto('/');
+      await studentPage.click('button:has-text("Sign In")');
+      await studentPage.waitForSelector('input[type="email"]');
+      await studentPage.fill('input[type="email"]', 'scholar@srmist.edu.in');
+      await studentPage.fill('input[type="password"]', 'pass123');
+      await studentPage.click('button:has-text("Sign In & Continue")');
+      await studentPage.waitForURL('**/dashboard');
+
+      // 4. Student enters 6-digit PIN and joins lobby
+      await studentPage.waitForSelector('input[placeholder="ENTER 6-DIGIT PIN"]');
+      const pinInput = studentPage.locator('input[placeholder="ENTER 6-DIGIT PIN"]');
+      await pinInput.fill(pin);
+      await expect(pinInput).toHaveValue(pin);
+      await studentPage.click('#submit-join-pin-btn');
+      await studentPage.waitForURL(`**/arena/${pin}`);
+      await expect(studentPage.locator('text=Waiting for Host to Launch')).toBeVisible();
+
+      // 5. Host sees player count updated and start button enabled
+      await hostPage.waitForTimeout(1000);
+      await expect(hostPage.locator('#start-arena-btn')).toBeEnabled();
+
+      // 6. Host launches quiz game
+      await hostPage.click('#start-arena-btn');
+
+      // 7. Verify question synchronization across host and student
+      await expect(hostPage.locator('text=Question 1 of')).toBeVisible();
+      await expect(studentPage.locator('text=Question 1 of')).toBeVisible();
+
+      // 8. Student submits answer
+      await studentPage.waitForTimeout(500);
+      await studentPage.locator('.arena-option-btn[data-option-index="0"]').click();
+      await expect(studentPage.locator('text=Live Arena Leaderboard')).toBeVisible();
+
+      // 9. Host ends session to transition to final results
+      await hostPage.locator('button:has-text("End Game Early")').click();
+
+      // 10. Verify session results and final leaderboard rendered on both clients
+      await expect(hostPage.locator('text=Arena Match Finished!')).toBeVisible();
+      await expect(hostPage.locator('text=Final results synchronized with campus scoreboard and Action Points vault.')).toBeVisible();
+      await expect(studentPage.locator('text=Arena Match Finished!')).toBeVisible();
+      await expect(studentPage.locator('text=Final results synchronized with campus scoreboard and Action Points vault.')).toBeVisible();
+    } finally {
+      await hostContext.close();
+      await studentContext.close();
+    }
+  });
 });

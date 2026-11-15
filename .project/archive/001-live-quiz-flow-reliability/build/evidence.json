@@ -1,0 +1,104 @@
+{
+  "canonical_project_dir": ".project",
+  "command": "verify-landed",
+  "head": "a9c2cefb569bdbbb7c8692ea07c6b57e5403b9d2",
+  "project_dir": ".project",
+  "tasks": [
+    {
+      "classification": "proven-landed",
+      "command": "reconcile",
+      "history": {
+        "branch": "gsd-path/M001",
+        "candidates": [
+          {
+            "base": "a7b1155201808e8458e709b7475ddc02d1f40893",
+            "commit": "3d615ad243095a2360dce46887ebaf8651382446",
+            "valid": true
+          }
+        ],
+        "head": "a9c2cefb569bdbbb7c8692ea07c6b57e5403b9d2",
+        "subject": "T001: Harden backend game engine, Redis session TTLs, and join/action APIs"
+      },
+      "landed_commit": "3d615ad243095a2360dce46887ebaf8651382446",
+      "reasons": [],
+      "task": {
+        "base": "a7b1155201808e8458e709b7475ddc02d1f40893",
+        "id": "T001",
+        "status": "done",
+        "task_file": ".project/tasks/T001-harden-game-engine-and-api.md"
+      }
+    },
+    {
+      "classification": "proven-landed",
+      "command": "reconcile",
+      "history": {
+        "branch": "gsd-path/M001",
+        "candidates": [
+          {
+            "base": "40d8c4d2268173d758b5d9ec2c20bba4fbe09a1a",
+            "commit": "76f3d4e49c031a565dffe1af2b6d18da9fb3dac1",
+            "valid": true
+          }
+        ],
+        "head": "a9c2cefb569bdbbb7c8692ea07c6b57e5403b9d2",
+        "subject": "T002: Reconcile project overview documentation with Supabase Realtime architecture"
+      },
+      "landed_commit": "76f3d4e49c031a565dffe1af2b6d18da9fb3dac1",
+      "reasons": [],
+      "task": {
+        "base": "40d8c4d2268173d758b5d9ec2c20bba4fbe09a1a",
+        "id": "T002",
+        "status": "done",
+        "task_file": ".project/tasks/T002-reconcile-project-documentation.md"
+      }
+    },
+    {
+      "classification": "proven-landed",
+      "command": "reconcile",
+      "history": {
+        "branch": "gsd-path/M001",
+        "candidates": [
+          {
+            "base": "593fb2ed943f332b5a0505ef606a05e7390157f5",
+            "commit": "92737952d3ab6de6a46fe904c6910dcbc94467cb",
+            "valid": true
+          }
+        ],
+        "head": "a9c2cefb569bdbbb7c8692ea07c6b57e5403b9d2",
+        "subject": "T003: Synchronize Arena and HostDashboard lobby management, question state, and scoring"
+      },
+      "landed_commit": "92737952d3ab6de6a46fe904c6910dcbc94467cb",
+      "reasons": [],
+      "task": {
+        "base": "593fb2ed943f332b5a0505ef606a05e7390157f5",
+        "id": "T003",
+        "status": "done",
+        "task_file": ".project/tasks/T003-synchronize-arena-and-host-flow.md"
+      }
+    },
+    {
+      "classification": "proven-landed",
+      "command": "reconcile",
+      "history": {
+        "branch": "gsd-path/M001",
+        "candidates": [
+          {
+            "base": "6fb5ccebd7b98627b342ae83af49f4b1b919d52a",
+            "commit": "f569048e7ab2530f3dd4e10db5f9619efd7b2708",
+            "valid": true
+          }
+        ],
+        "head": "a9c2cefb569bdbbb7c8692ea07c6b57e5403b9d2",
+        "subject": "T004: Validate live quiz lifecycle and state transitions with automated Playwright tests"
+      },
+      "landed_commit": "f569048e7ab2530f3dd4e10db5f9619efd7b2708",
+      "reasons": [],
+      "task": {
+        "base": "6fb5ccebd7b98627b342ae83af49f4b1b919d52a",
+        "id": "T004",
+        "status": "done",
+        "task_file": ".project/tasks/T004-lifecycle-and-state-test-suite.md"
+      }
+    }
+  ]
+}

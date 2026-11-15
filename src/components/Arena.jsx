@@ -315,10 +315,20 @@ export function Arena({ roomPin }) {
   };
 
   const hostStartGame = () => {
+    const pCount = Object.keys(players).length;
+    if (pCount === 0) {
+      setErrorMsg('Cannot start competition: at least one player must join the lobby.');
+      return;
+    }
     fetch('/api/game/host-action', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ roomPin, actionType: 'start_game', token: currentUser?.token }),
+    }).then(async (res) => {
+      const data = await res.json();
+      if (!res.ok) {
+        setErrorMsg(data.error || 'Failed to start game');
+      }
     });
   };
 
@@ -446,14 +456,31 @@ export function Arena({ roomPin }) {
           </div>
 
           {isHost ? (
-            <button
-              onClick={hostStartGame}
-              className="btn-primary-gradient"
-              style={{ width: '100%', maxWidth: '360px', padding: '16px', borderRadius: '14px', fontSize: '16px' }}
-            >
-              <Zap className="w-5 h-5 mr-2" />
-              <span>Start Arena Competition</span>
-            </button>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '10px' }}>
+              <button
+                id="start-arena-btn"
+                onClick={hostStartGame}
+                disabled={playerCount === 0}
+                className="btn-primary-gradient"
+                style={{
+                  width: '100%',
+                  maxWidth: '360px',
+                  padding: '16px',
+                  borderRadius: '14px',
+                  fontSize: '16px',
+                  opacity: playerCount === 0 ? 0.6 : 1,
+                  cursor: playerCount === 0 ? 'not-allowed' : 'pointer',
+                }}
+              >
+                <Zap className="w-5 h-5 mr-2" />
+                <span>{playerCount === 0 ? 'Waiting for Players...' : 'Start Arena Competition'}</span>
+              </button>
+              {playerCount === 0 && (
+                <p id="zero-players-warning" style={{ color: '#F87171', fontSize: '13px', fontWeight: '700' }}>
+                  At least 1 verified player must join the lobby before starting the competition.
+                </p>
+              )}
+            </div>
           ) : (
             <p style={{ color: '#64748B', fontSize: '13px' }}>
               The quiz will start automatically when the host initiates.
