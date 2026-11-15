@@ -173,6 +173,8 @@ export const gameController = {
       // Return the result directly to the submitting player
       return reply.send({
         success: true,
+        duplicate: !!result.duplicate,
+        ignored: !!result.ignored,
         isCorrect: result.isCorrect,
         pointsAwarded: result.pointsAwarded,
         newTotalScore: result.newTotalScore,

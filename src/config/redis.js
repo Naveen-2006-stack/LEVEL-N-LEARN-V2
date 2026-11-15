@@ -95,6 +95,37 @@ class InMemoryRedisMock extends EventEmitter {
     return obj;
   }
 
+  async hlen(key) {
+    if (this._isExpired(key)) {
+      await this.del(key);
+      return 0;
+    }
+    const map = this.hashes.get(key);
+    return map ? map.size : 0;
+  }
+
+  async hincrby(key, field, increment = 1) {
+    if (!this.hashes.has(key)) {
+      this.hashes.set(key, new Map());
+    }
+    const map = this.hashes.get(key);
+    const current = parseInt(map.get(field) || '0', 10);
+    const inc = parseInt(increment, 10) || 0;
+    const newVal = current + inc;
+    map.set(field, String(newVal));
+    return newVal;
+  }
+
+  async hdel(key, ...fields) {
+    const map = this.hashes.get(key);
+    if (!map) return 0;
+    let deleted = 0;
+    for (const f of fields) {
+      if (map.delete(f)) deleted++;
+    }
+    return deleted;
+  }
+
   async rpush(key, value) {
     if (!this.lists.has(key)) {
       this.lists.set(key, []);

@@ -33,8 +33,7 @@ function RequireAdmin({ children }) {
 
   const isSuperAdmin =
     currentUser?.email === 'quizsrm@gmail.com' ||
-    currentUser?.role === 'super_admin' ||
-    currentUser?.user_metadata?.full_name === 'Naveen Manikandan';
+    currentUser?.role === 'super_admin';
 
   if (!isSuperAdmin) {
     return <Navigate to="/dashboard" replace />;

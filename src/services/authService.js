@@ -155,6 +155,17 @@ export const authService = {
       if (!parsed || !parsed.token || !parsed.id) {
         return null;
       }
+      // Validate client-side JWT expiration
+      const [data] = parsed.token.split('.');
+      if (data) {
+        try {
+          const payload = JSON.parse(atob(data));
+          if (payload.exp && Date.now() > payload.exp) {
+            localStorage.removeItem(STORAGE_KEY);
+            return null;
+          }
+        } catch (tokenErr) {}
+      }
       return parsed;
     } catch (e) {
       return null;

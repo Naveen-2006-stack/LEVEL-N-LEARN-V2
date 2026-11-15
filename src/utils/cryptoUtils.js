@@ -6,15 +6,16 @@ const KEY_LEN = 64;
 const DIGEST = 'sha512';
 
 /**
- * Hashes a plaintext password with a cryptographically secure random salt.
+ * Hashes a plaintext password with a cryptographically secure random salt (or optional fixed salt for seed fixtures).
  * @param {string} password 
+ * @param {string} [customSalt]
  * @returns {{ hash: string, salt: string }}
  */
-export function hashPassword(password) {
+export function hashPassword(password, customSalt = null) {
   if (!password || typeof password !== 'string') {
     throw new Error('Valid password string is required for hashing');
   }
-  const salt = crypto.randomBytes(16).toString('hex');
+  const salt = customSalt || crypto.randomBytes(16).toString('hex');
   const hash = crypto.pbkdf2Sync(password, salt, ITERATIONS, KEY_LEN, DIGEST).toString('hex');
   return { hash, salt };
 }
@@ -71,7 +72,9 @@ export function verifyAuthToken(token) {
     if (!data || !signature) return null;
     
     const expectedSignature = crypto.createHmac('sha256', SECRET).update(data).digest('base64');
-    if (signature !== expectedSignature) {
+    const sigBuffer = Buffer.from(signature);
+    const expectedBuffer = Buffer.from(expectedSignature);
+    if (sigBuffer.length !== expectedBuffer.length || !crypto.timingSafeEqual(sigBuffer, expectedBuffer)) {
       return null;
     }
     

@@ -17,8 +17,7 @@ export function AppShell({ children, connectionStatus = 'CONNECTED', onOpenAuth 
 
   const isSuperAdmin =
     currentUser?.email === 'quizsrm@gmail.com' ||
-    currentUser?.role === 'super_admin' ||
-    currentUser?.user_metadata?.full_name === 'Naveen Manikandan';
+    currentUser?.role === 'super_admin';
 
   const handleLogout = async () => {
     await authService.logout();

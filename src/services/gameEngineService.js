@@ -342,6 +342,11 @@ export const gameEngineService = {
       throw new Error('Game already started');
     }
 
+    const playersCount = await redis.hlen(`room:${roomPin}:players`);
+    if (playersCount === 0) {
+      throw new Error('Cannot start game with zero players in lobby');
+    }
+
     await redis.hset(metaKey, {
       status: 'active',
       current_question: '0'
@@ -449,11 +454,25 @@ export const gameEngineService = {
       throw new Error('Answer rejected: question is not currently active');
     }
 
-    // 1. Prevent duplicate submissions per question using an atomic Redis SET operation
+    // 1. Prevent duplicate submissions per question using an atomic Redis SET operation (E4: Idempotent)
     const answeredKey = `room:${roomPin}:answered:${questionIndex}`;
     const addedCount = await redis.sadd(answeredKey, playerId);
     if (addedCount === 0) {
-      throw new Error('Duplicate answer submission rejected');
+      const currentStreak = parseInt((await redis.hget(`room:${roomPin}:streaks`, playerId)) || '0', 10);
+      const currentScore = parseInt((await redis.hget(`room:${roomPin}:scores`, playerId)) || '0', 10);
+      const currentAP = parseInt((await redis.hget(`room:${roomPin}:action_points`, playerId)) || '0', 10);
+      return {
+        playerId,
+        isCorrect: false,
+        pointsAwarded: 0,
+        newTotalScore: currentScore,
+        currentStreak,
+        isStreakActive: currentStreak >= 3,
+        apAwarded: 0,
+        newTotalAP: currentAP,
+        ignored: true,
+        duplicate: true,
+      };
     }
 
     // 2. Server-side validation of correct answer
@@ -519,6 +538,10 @@ export const gameEngineService = {
       await redis.hset(streaksKey, playerId, 0);
     }
 
+    // Record response time and timestamp for deterministic leaderboard tie-breaking (E5)
+    await redis.hincrby(`room:${roomPin}:response_times`, playerId, safeResponseTimeMs);
+    await redis.hset(`room:${roomPin}:last_answer_at`, playerId, Date.now());
+
     return {
       playerId,
       isCorrect,
@@ -541,6 +564,8 @@ export const gameEngineService = {
     const playersHash = await redis.hgetall(`room:${roomPin}:players`);
     const apHash = await redis.hgetall(`room:${roomPin}:action_points`);
     const streakHash = await redis.hgetall(`room:${roomPin}:streaks`);
+    const responseTimesHash = await redis.hgetall(`room:${roomPin}:response_times`);
+    const lastAnswerHash = await redis.hgetall(`room:${roomPin}:last_answer_at`);
 
     const playerIds = Object.keys(scoresHash);
     const leaderboard = [];
@@ -556,14 +581,30 @@ export const gameEngineService = {
         score: parseInt(scoresHash[pid] || '0', 10),
         actionPoints: parseInt(apHash[pid] || '0', 10),
         streak: parseInt(streakHash[pid] || '0', 10),
+        totalResponseTimeMs: parseInt(responseTimesHash[pid] || '0', 10),
+        lastAnswerAt: parseInt(lastAnswerHash[pid] || '0', 10),
         violationsCount: violationLogs.length,
         hasViolation: violationLogs.length > 0,
         violationLogs,
       });
     }
 
-    // Sort descending by score
-    leaderboard.sort((a, b) => b.score - a.score);
+    // Sort descending by score, with deterministic tie-breaking (E5)
+    leaderboard.sort((a, b) => {
+      if (b.score !== a.score) {
+        return b.score - a.score;
+      }
+      // Secondary tie-breaker: faster total response time wins (lower ms is better)
+      if (a.totalResponseTimeMs !== b.totalResponseTimeMs) {
+        return a.totalResponseTimeMs - b.totalResponseTimeMs;
+      }
+      // Tertiary tie-breaker: earlier answer timestamp wins
+      if (a.lastAnswerAt !== b.lastAnswerAt) {
+        return a.lastAnswerAt - b.lastAnswerAt;
+      }
+      // Deterministic final fallback: alphabetical by username / playerId
+      return (a.username || a.playerId).localeCompare(b.username || b.playerId);
+    });
     return leaderboard;
   },
 
@@ -631,6 +672,8 @@ export const gameEngineService = {
       `room:${roomPin}:crowd_questions`,
       `room:${roomPin}:questions`, // Clean up cached questions
       `room:${roomPin}:violations`, // Clean up anti-cheat violations list
+      `room:${roomPin}:response_times`, // Clean up response times
+      `room:${roomPin}:last_answer_at`, // Clean up last answer timestamps
     ];
     
     // Clean up all question-answer sets (assuming max 50 questions as an arbitrary limit for cleanup)
