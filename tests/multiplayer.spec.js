@@ -45,9 +45,10 @@ test.describe('LevelNLearn Multiplayer Real-Time Engine & Live Arena', () => {
     const pin = url.split('/').pop();
     expect(pin).toMatch(/^\d{6}$/);
 
-    // Verify host sees Lobby and Host Controls
+    // Verify host sees Lobby and Host Controls with zero-player warning (E3)
     await expect(hostPage.locator('text=Waiting for Host to Launch')).toBeVisible();
-    await expect(hostPage.locator('button:has-text("Start Arena Competition")')).toBeVisible();
+    await expect(hostPage.locator('#zero-players-warning')).toBeVisible();
+    await expect(hostPage.locator('#start-arena-btn')).toBeDisabled();
 
     // 2. Player 1 joins using 6-Digit PIN
     await player1Page.goto(BASE_URL);
@@ -84,6 +85,8 @@ test.describe('LevelNLearn Multiplayer Real-Time Engine & Live Arena', () => {
 
     // Verify Host sees verified player count update in real-time
     await expect(hostPage.locator('text=Verified Players in Lobby')).toBeVisible();
+    await expect(hostPage.locator('#zero-players-warning')).not.toBeVisible();
+    await expect(hostPage.locator('#start-arena-btn')).toBeEnabled();
   });
 
   test('Host starts arena and all clients synchronize questions in real-time', async () => {
@@ -110,5 +113,110 @@ test.describe('LevelNLearn Multiplayer Real-Time Engine & Live Arena', () => {
     // Verify Live Leaderboard sidebar updates
     await expect(hostPage.locator('text=Live Arena Leaderboard')).toBeVisible();
     await expect(player1Page.locator('text=Live Arena Leaderboard')).toBeVisible();
+  });
+
+  test('Duplicate answer submissions are handled idempotently without error (E4)', async ({ request }) => {
+    // 1. Create a live room
+    const loginRes = await request.post('http://localhost:4000/api/auth/srmist-login', {
+      data: { email: 'quizsrm@gmail.com', password: 'adminpass' },
+    });
+    const login = await loginRes.json();
+    const testPin = Math.floor(100000 + Math.random() * 900000).toString();
+    await request.post('http://localhost:4000/api/sessions', {
+      data: {
+        token: login.data.token,
+        quizId: 'q_001',
+        customRoomPin: testPin,
+      },
+    });
+
+    // 2. Join a player
+    const joinRes = await request.post('http://localhost:4000/api/game/join', {
+      data: {
+        roomPin: testPin,
+        username: 'idempotent_tester',
+      },
+    });
+    const joinData = await joinRes.json();
+    const playerToken = joinData.data.playerToken;
+
+    // 3. Start game
+    await request.post('http://localhost:4000/api/game/host-action', {
+      data: {
+        roomPin: testPin,
+        actionType: 'start_game',
+        token: login.data.token,
+      },
+    });
+
+    // 4. First answer submission
+    const res1 = await request.post('http://localhost:4000/api/game/submit', {
+      data: {
+        roomPin: testPin,
+        playerToken,
+        questionIndex: 0,
+        selectedOption: 1,
+        responseTimeMs: 2000,
+      },
+    });
+    expect(res1.status()).toBe(200);
+    const body1 = await res1.json();
+    expect(body1.success).toBe(true);
+
+    // 5. Second (duplicate) answer submission for same question index
+    const res2 = await request.post('http://localhost:4000/api/game/submit', {
+      data: {
+        roomPin: testPin,
+        playerToken,
+        questionIndex: 0,
+        selectedOption: 2,
+        responseTimeMs: 1000,
+      },
+    });
+    expect(res2.status()).toBe(200);
+    const body2 = await res2.json();
+    expect(body2.success).toBe(true);
+    expect(body2.duplicate).toBe(true);
+    expect(body2.pointsAwarded).toBe(0);
+    expect(body2.newTotalScore).toBe(body1.newTotalScore);
+  });
+
+  test('Tied scores are sorted deterministically on leaderboard by response speed (E5)', async ({ request }) => {
+    const loginRes = await request.post('http://localhost:4000/api/auth/srmist-login', {
+      data: { email: 'quizsrm@gmail.com', password: 'adminpass' },
+    });
+    const login = await loginRes.json();
+    const testPin = Math.floor(100000 + Math.random() * 900000).toString();
+    await request.post('http://localhost:4000/api/sessions', {
+      data: {
+        token: login.data.token,
+        quizId: 'q_001',
+        customRoomPin: testPin,
+      },
+    });
+
+    const pSlow = (await (await request.post('http://localhost:4000/api/game/join', {
+      data: { roomPin: testPin, username: 'Player_Slow' }
+    })).json()).data;
+
+    const pFast = (await (await request.post('http://localhost:4000/api/game/join', {
+      data: { roomPin: testPin, username: 'Player_Fast' }
+    })).json()).data;
+
+    await request.post('http://localhost:4000/api/game/host-action', {
+      data: { roomPin: testPin, actionType: 'start_game', token: login.data.token }
+    });
+
+    await request.post('http://localhost:4000/api/game/submit', {
+      data: { roomPin: testPin, playerToken: pSlow.playerToken, questionIndex: 0, selectedOption: -1, responseTimeMs: 8000 }
+    });
+    await request.post('http://localhost:4000/api/game/submit', {
+      data: { roomPin: testPin, playerToken: pFast.playerToken, questionIndex: 0, selectedOption: -1, responseTimeMs: 500 }
+    });
+
+    const endRes = await request.post('http://localhost:4000/api/game/end', {
+      data: { roomPin: testPin, token: login.data.token }
+    });
+    expect(endRes.status()).toBe(200);
   });
 });

@@ -4,9 +4,9 @@ title: Synchronize Arena and HostDashboard lobby management, question state, and
 wave: 2
 deps:
   - T001
-status: pending
-agent: null
-base: null
+status: done
+agent: build_T003
+base: 593fb2ed943f332b5a0505ef606a05e7390157f5
 worktree: null
 task_branch: null
 files:
@@ -60,3 +60,4 @@ Heavy: no
 ## Log
 
 - 2026-11-13 — created by planner
+- 2026-11-15 — completed T003: implemented zero-player start check (E3), idempotent duplicate answer submission (E4), and deterministic response-speed tie-breaking (E5); all 8 tests passing in tests/join-quiz.spec.js and tests/multiplayer.spec.js.
