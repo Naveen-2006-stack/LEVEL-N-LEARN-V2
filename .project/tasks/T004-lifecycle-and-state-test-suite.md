@@ -5,9 +5,9 @@ wave: 2
 deps:
   - T001
   - T003
-status: pending
-agent: null
-base: null
+status: done
+agent: build_T004
+base: 6fb5ccebd7b98627b342ae83af49f4b1b919d52a
 worktree: null
 task_branch: null
 files:
@@ -50,3 +50,4 @@ Heavy: no
 ## Log
 
 - 2026-11-13 — created by planner
+- 2026-11-15 — completed and verified by coder: extended tests/campus-gateway-lifecycle.spec.js with complete multi-context end-to-end lifecycle test covering student PIN entry, lobby join, host launch, question progression, and final session results & leaderboard rankings. Verification command `npx playwright test tests/campus-gateway-lifecycle.spec.js` passed (3/3 tests passed in 19.3s).
