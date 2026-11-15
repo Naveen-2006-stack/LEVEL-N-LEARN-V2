@@ -4,6 +4,10 @@ export async function quizRoutes(fastify, opts) {
   // SRMIST Campus Auth Endpoints (@srmist.edu.in restricted)
   fastify.post('/auth/srmist-login', quizController.srmistLogin);
   fastify.post('/auth/srmist-register', quizController.srmistRegister);
+  fastify.post('/auth/forgot-password', quizController.forgotPassword);
+  fastify.get('/auth/verify-reset-token', quizController.verifyResetToken);
+  fastify.post('/auth/reset-password', quizController.resetPassword);
+  fastify.get('/auth/email-status', quizController.getEmailStatus);
 
   // Manual Quiz CRUD
   fastify.post('/quizzes', quizController.createQuiz);

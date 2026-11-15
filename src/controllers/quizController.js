@@ -4,6 +4,8 @@ import { gameEngineService, inMemorySessions } from '../services/gameEngineServi
 import { supabase } from '../config/supabase.js';
 import { redis } from '../config/redis.js';
 import { signAuthToken, hashPassword, verifyPassword, verifyAuthToken } from '../utils/cryptoUtils.js';
+import { passwordResetService } from '../services/passwordResetService.js';
+import { emailService } from '../services/emailService.js';
 
 /**
  * Extracts and verifies the caller's session token from either the
@@ -178,6 +180,92 @@ export const quizController = {
         error: 'Registration failed: ' + err.message,
       });
     }
+  },
+
+  /**
+   * POST /api/auth/forgot-password - Request password reset link
+   */
+  async forgotPassword(request, reply) {
+    try {
+      const { email } = request.body || {};
+      const clientIp = request.ip || request.headers['x-forwarded-for'] || '127.0.0.1';
+      const host = request.headers.host || 'localhost:3000';
+      const origin = request.headers.origin || `${request.protocol}://${host}`;
+      const simulateFailure = request.headers['x-simulate-email-failure'] === 'true' || request.body?.simulateFailure === true;
+
+      const result = await passwordResetService.requestPasswordReset({
+        email,
+        clientIp,
+        origin,
+        simulateFailure,
+      });
+
+      return reply.code(200).send(result);
+    } catch (err) {
+      const code = err.statusCode || 500;
+      return reply.code(code).send({
+        success: false,
+        error: err.message || 'Internal server error processing reset request.',
+      });
+    }
+  },
+
+  /**
+   * GET /api/auth/verify-reset-token - Check if reset token is valid
+   */
+  async verifyResetToken(request, reply) {
+    try {
+      const { token } = request.query || {};
+      const result = await passwordResetService.verifyResetToken(token);
+      if (!result.valid) {
+        return reply.code(400).send({
+          success: false,
+          error: result.error || 'Invalid or expired token.',
+        });
+      }
+      return reply.code(200).send({
+        success: true,
+        valid: true,
+        email: result.email,
+        fullName: result.fullName,
+      });
+    } catch (err) {
+      return reply.code(400).send({
+        success: false,
+        error: err.message || 'Failed to verify reset token.',
+      });
+    }
+  },
+
+  /**
+   * POST /api/auth/reset-password - Execute password reset
+   */
+  async resetPassword(request, reply) {
+    try {
+      const { token, newPassword } = request.body || {};
+      const result = await passwordResetService.resetPassword({
+        token,
+        newPassword,
+      });
+      return reply.code(200).send(result);
+    } catch (err) {
+      const code = err.statusCode || 400;
+      return reply.code(code).send({
+        success: false,
+        error: err.message || 'Failed to reset password.',
+      });
+    }
+  },
+
+  /**
+   * GET /api/auth/email-status - Inspect email provider configuration
+   */
+  async getEmailStatus(request, reply) {
+    const status = emailService.isConfigured();
+    return reply.code(200).send({
+      success: true,
+      data: status,
+    });
   },
 
   /**

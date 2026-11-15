@@ -40,6 +40,33 @@ export function AuthDrawer({ isOpen, onClose, initialTab = 'signin', pendingRoom
     setSuccessMessage('');
   };
 
+  // Forgot Password Handler
+  const handleForgotPassword = async (e) => {
+    e.preventDefault();
+    setErrorMessage('');
+    setSuccessMessage('');
+
+    if (!isSrmistDomain) {
+      setErrorMessage('Access Denied: Must be an official @srmist.edu.in email address.');
+      return;
+    }
+
+    setIsLoading(true);
+
+    try {
+      const { data, error } = await authService.requestPasswordReset(email);
+      if (error) {
+        setErrorMessage(error.message || 'Failed to send reset link.');
+      } else {
+        setSuccessMessage('If an account exists for this email, password reset instructions will be sent.');
+      }
+    } catch (err) {
+      setErrorMessage(err.message || 'Network error occurred while requesting password reset.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   // Sign In Handler
   const handleSignIn = async (e) => {
     e.preventDefault();
@@ -211,20 +238,22 @@ export function AuthDrawer({ isOpen, onClose, initialTab = 'signin', pendingRoom
             </div>
 
             {/* SEGMENTED TAB TOGGLE */}
-            <div className="tab-switcher" style={{ marginBottom: '24px' }}>
-              <button
-                className={`tab-btn ${activeTab === 'signin' ? 'active' : ''}`}
-                onClick={() => handleTabSwitch('signin')}
-              >
-                Sign In
-              </button>
-              <button
-                className={`tab-btn ${activeTab === 'register' ? 'active' : ''}`}
-                onClick={() => handleTabSwitch('register')}
-              >
-                Register
-              </button>
-            </div>
+            {activeTab !== 'forgot-password' && (
+              <div className="tab-switcher" style={{ marginBottom: '24px' }}>
+                <button
+                  className={`tab-btn ${activeTab === 'signin' ? 'active' : ''}`}
+                  onClick={() => handleTabSwitch('signin')}
+                >
+                  Sign In
+                </button>
+                <button
+                  className={`tab-btn ${activeTab === 'register' ? 'active' : ''}`}
+                  onClick={() => handleTabSwitch('register')}
+                >
+                  Register
+                </button>
+              </div>
+            )}
 
             {/* SUCCESS ALERT */}
             {successMessage && (
@@ -239,6 +268,111 @@ export function AuthDrawer({ isOpen, onClose, initialTab = 'signin', pendingRoom
               <div className="error-alert" style={{ marginBottom: '20px' }}>
                 <AlertCircle className="w-4 h-4 text-red-400 shrink-0" />
                 <span>{errorMessage}</span>
+              </div>
+            )}
+
+            {/* FORGOT PASSWORD FORM */}
+            {activeTab === 'forgot-password' && (
+              <div className="forgot-password-view" style={{ animation: 'fadeIn 0.2s ease-in-out' }}>
+                <div style={{ marginBottom: '20px' }}>
+                  <h3 style={{ fontSize: '18px', fontWeight: '800', color: '#F8FAFC', margin: '0 0 6px 0' }}>
+                    Forgot your password?
+                  </h3>
+                  <p style={{ fontSize: '13px', color: '#94A3B8', margin: 0, lineHeight: '1.5' }}>
+                    Enter your registered SRMIST email address. We'll help you reset your password.
+                  </p>
+                </div>
+
+                <form onSubmit={handleForgotPassword} className="auth-form">
+                  <div className="form-group">
+                    <label>SRMIST Email Address</label>
+                    <div className="input-input-wrapper">
+                      <Mail className="input-icon" />
+                      <input
+                        type="email"
+                        id="forgot-password-email-input"
+                        placeholder="netid@srmist.edu.in"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        required
+                        disabled={isLoading}
+                        className={hasTypedEmail ? (isSrmistDomain ? 'valid-border' : 'invalid-border') : ''}
+                        autoFocus
+                      />
+                    </div>
+
+                    {/* DOMAIN BADGE */}
+                    {hasTypedEmail && (
+                      <div className={`domain-badge ${isSrmistDomain ? 'valid' : 'invalid'}`}>
+                        {isSrmistDomain ? (
+                          <>
+                            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+                            <span>Verified Campus Credential</span>
+                          </>
+                        ) : (
+                          <>
+                            <AlertCircle className="w-3.5 h-3.5 text-red-400" />
+                            <span>Must be an official @srmist.edu.in address</span>
+                          </>
+                        )}
+                      </div>
+                    )}
+                  </div>
+
+                  <button
+                    type="submit"
+                    id="send-reset-link-btn"
+                    disabled={!isSrmistDomain || isLoading}
+                    className="btn-primary-gradient"
+                    style={{
+                      padding: '14px',
+                      borderRadius: '12px',
+                      fontSize: '15px',
+                      marginTop: '8px',
+                      opacity: !isSrmistDomain || isLoading ? 0.6 : 1,
+                      cursor: !isSrmistDomain || isLoading ? 'not-allowed' : 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '8px',
+                      width: '100%',
+                    }}
+                  >
+                    {isLoading ? (
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        <span>Sending Instructions...</span>
+                      </>
+                    ) : (
+                      <>
+                        <span>Send Reset Link</span>
+                        <Sparkles className="w-4 h-4" />
+                      </>
+                    )}
+                  </button>
+
+                  <button
+                    type="button"
+                    id="back-to-signin-btn"
+                    onClick={() => handleTabSwitch('signin')}
+                    className="btn-glass"
+                    style={{
+                      width: '100%',
+                      padding: '12px',
+                      borderRadius: '12px',
+                      fontSize: '14px',
+                      marginTop: '12px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '8px',
+                      color: '#94A3B8',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    ← Back to Sign In
+                  </button>
+                </form>
               </div>
             )}
 
@@ -279,7 +413,7 @@ export function AuthDrawer({ isOpen, onClose, initialTab = 'signin', pendingRoom
                   )}
                 </div>
 
-                <div className="form-group">
+                <div className="form-group" style={{ marginBottom: '8px' }}>
                   <label>Password</label>
                   <div className="input-input-wrapper">
                     <Lock className="input-icon" />
@@ -292,6 +426,32 @@ export function AuthDrawer({ isOpen, onClose, initialTab = 'signin', pendingRoom
                       disabled={isLoading}
                     />
                   </div>
+                </div>
+
+                {/* FORGOT PASSWORD LINK */}
+                <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '4px', marginBottom: '18px' }}>
+                  <button
+                    type="button"
+                    id="forgot-password-link"
+                    onClick={() => handleTabSwitch('forgot-password')}
+                    style={{
+                      background: 'none',
+                      border: 'none',
+                      padding: '2px 4px',
+                      color: '#C084FC',
+                      fontSize: '13px',
+                      fontWeight: '500',
+                      cursor: 'pointer',
+                      transition: 'color 0.2s ease, text-decoration 0.2s ease',
+                      outline: 'none',
+                    }}
+                    onMouseEnter={(e) => { e.currentTarget.style.color = '#E9D5FF'; e.currentTarget.style.textDecoration = 'underline'; }}
+                    onMouseLeave={(e) => { e.currentTarget.style.color = '#C084FC'; e.currentTarget.style.textDecoration = 'none'; }}
+                    onFocus={(e) => { e.currentTarget.style.boxShadow = '0 0 0 2px rgba(192, 132, 252, 0.4)'; e.currentTarget.style.borderRadius = '4px'; }}
+                    onBlur={(e) => { e.currentTarget.style.boxShadow = 'none'; }}
+                  >
+                    Forgot Password?
+                  </button>
                 </div>
 
                 <button

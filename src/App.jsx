@@ -4,6 +4,7 @@ import LandingPage from './components/LandingPage.jsx';
 import HostDashboard from './components/HostDashboard.jsx';
 import SuperAdminConsole from './components/SuperAdminConsole.jsx';
 import Arena from './components/Arena.jsx';
+import ResetPasswordPage from './components/ResetPasswordPage.jsx';
 import AppShell from './components/common/AppShell.jsx';
 import authService from './services/authService.js';
 import './styles/globals.css';
@@ -101,6 +102,9 @@ export function App() {
       <Routes>
         {/* Unrestricted Landing Page Route with Slide-Out Auth Drawer */}
         <Route path="/" element={<LandingPage />} />
+
+        {/* Unrestricted Password Reset Route */}
+        <Route path="/reset-password" element={<ResetPasswordPage />} />
 
         {/* Protected Dashboard Route */}
         <Route

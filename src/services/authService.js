@@ -171,6 +171,105 @@ export const authService = {
       return null;
     }
   },
+
+  /**
+   * Requests a password reset link for an SRMIST campus email.
+   * Employs generic success responses to protect against account enumeration.
+   */
+  async requestPasswordReset(email, simulateFailure = false) {
+    try {
+      if (!email || !this.isValidSrmistEmail(email)) {
+        return { data: null, error: { message: 'Must be an official @srmist.edu.in email address.' } };
+      }
+
+      const res = await fetch(`${API_BASE}/forgot-password`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(simulateFailure ? { 'x-simulate-email-failure': 'true' } : {}),
+        },
+        body: JSON.stringify({ email: email.trim().toLowerCase(), simulateFailure }),
+      });
+
+      const json = await res.json();
+      if (!res.ok || !json.success) {
+        return { data: null, error: { message: json.error || 'Failed to request password reset.' } };
+      }
+
+      return { data: json, error: null };
+    } catch (e) {
+      return { data: null, error: { message: 'Network or server error during password reset request.' } };
+    }
+  },
+
+  /**
+   * Verifies the authenticity and validity of a reset token.
+   */
+  async verifyResetToken(token) {
+    try {
+      if (!token) {
+        return { data: null, error: { message: 'Reset token is required.' } };
+      }
+
+      const res = await fetch(`${API_BASE}/verify-reset-token?token=${encodeURIComponent(token)}`);
+      const json = await res.json();
+
+      if (!res.ok || !json.success) {
+        return { data: null, error: { message: json.error || 'Invalid or expired reset token.' } };
+      }
+
+      return { data: json, error: null };
+    } catch (e) {
+      return { data: null, error: { message: 'Unable to connect to authentication server.' } };
+    }
+  },
+
+  /**
+   * Sets a new password using a verified reset token.
+   * Does NOT authenticate the user or issue a session.
+   */
+  async resetPassword(token, newPassword) {
+    try {
+      if (!token || !newPassword) {
+        return { data: null, error: { message: 'Token and new password are required.' } };
+      }
+
+      if (newPassword.length < 6) {
+        return { data: null, error: { message: 'Password must be at least 6 characters long.' } };
+      }
+
+      const res = await fetch(`${API_BASE}/reset-password`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token, newPassword }),
+      });
+
+      const json = await res.json();
+      if (!res.ok || !json.success) {
+        return { data: null, error: { message: json.error || 'Failed to reset password.' } };
+      }
+
+      // Ensure no active session is automatically established
+      localStorage.removeItem(STORAGE_KEY);
+
+      return { data: json, error: null };
+    } catch (e) {
+      return { data: null, error: { message: 'Network or server error during password reset.' } };
+    }
+  },
+
+  /**
+   * Inspects server email configuration status.
+   */
+  async getEmailStatus() {
+    try {
+      const res = await fetch(`${API_BASE}/email-status`);
+      const json = await res.json();
+      return json.data || null;
+    } catch (e) {
+      return null;
+    }
+  },
 };
 
 export default authService;

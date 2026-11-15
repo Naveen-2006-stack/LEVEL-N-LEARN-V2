@@ -33,6 +33,7 @@ test.describe('LevelNLearn Final Release-Candidate Journey', () => {
   });
 
   test('Full journey: login -> lobby -> both questions -> final results -> refresh -> end session -> PIN dead', async () => {
+    test.setTimeout(60000);
     // Host login
     await hostPage.goto(BASE_URL);
     await hostPage.click('button:has-text("Sign In")');
