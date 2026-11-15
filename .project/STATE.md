@@ -2,7 +2,7 @@
 pipeline: gsd-path/v2
 project: levelnlearn
 milestone: live-quiz-flow-reliability
-phase: build
+phase: ship
                     # inspect only for brownfield; greenfield starts at define
                     # roadmap only in program flow (CHARTER.md exists)
 status: active
@@ -38,3 +38,4 @@ it on completion. If this file and the artifacts disagree, the artifacts win
 - 2026-11-13 — plan — plan approved
 - 2026-11-13 — build — build started
 - 2026-11-13 — build — plan defect repaired: added .gitignore to T002 files to anchor product build/ ignore rule
+- 2026-11-15 — ship — build done; final review pending
