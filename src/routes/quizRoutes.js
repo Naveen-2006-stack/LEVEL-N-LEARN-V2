@@ -7,6 +7,7 @@ export async function quizRoutes(fastify, opts) {
   fastify.post('/auth/forgot-password', quizController.forgotPassword);
   fastify.get('/auth/verify-reset-token', quizController.verifyResetToken);
   fastify.post('/auth/reset-password', quizController.resetPassword);
+  fastify.post('/auth/sync-supabase-password', quizController.syncSupabasePassword);
   fastify.get('/auth/email-status', quizController.getEmailStatus);
 
   // Manual Quiz CRUD

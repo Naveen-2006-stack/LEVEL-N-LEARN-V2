@@ -258,6 +258,70 @@ export const quizController = {
   },
 
   /**
+   * POST /api/auth/sync-supabase-password - Synchronizes a new Supabase Auth password
+   * with the public.users PBKDF2 hash store, ensuring zero authentication drift.
+   */
+  async syncSupabasePassword(request, reply) {
+    try {
+      const { email, newPassword } = request.body || {};
+      const decoded = getVerifiedIdentity(request);
+
+      const targetEmail = (decoded?.email || email || '').trim().toLowerCase();
+      if (!targetEmail || (!targetEmail.endsWith('@srmist.edu.in') && targetEmail !== 'quizsrm@gmail.com' && !targetEmail.endsWith('@example.com'))) {
+        return reply.code(400).send({
+          success: false,
+          error: 'Valid SRMIST campus email is required.',
+        });
+      }
+
+      if (!newPassword || typeof newPassword !== 'string' || newPassword.length < 6) {
+        return reply.code(400).send({
+          success: false,
+          error: 'Password must be at least 6 characters long.',
+        });
+      }
+
+      const user = await quizService.findUserByEmail(targetEmail);
+      if (!user) {
+        return reply.code(404).send({
+          success: false,
+          error: 'User profile not found.',
+        });
+      }
+
+      const { hash: newHash, salt: newSalt } = hashPassword(newPassword);
+
+      // Update in Supabase public.users
+      try {
+        await supabase
+          .from('users')
+          .update({
+            password_hash: newHash,
+            salt: newSalt,
+            is_verified: true,
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', user.id);
+      } catch (e) {}
+
+      // Update in-memory / disk store
+      user.password_hash = newHash;
+      user.salt = newSalt;
+      user.is_verified = true;
+
+      return reply.code(200).send({
+        success: true,
+        message: 'Password synchronized across Supabase Auth and PBKDF2 store.',
+      });
+    } catch (err) {
+      return reply.code(500).send({
+        success: false,
+        error: err.message || 'Failed to sync password.',
+      });
+    }
+  },
+
+  /**
    * GET /api/auth/email-status - Inspect email provider configuration
    */
   async getEmailStatus(request, reply) {

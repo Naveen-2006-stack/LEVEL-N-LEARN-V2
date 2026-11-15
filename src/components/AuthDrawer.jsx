@@ -54,7 +54,7 @@ export function AuthDrawer({ isOpen, onClose, initialTab = 'signin', pendingRoom
     setIsLoading(true);
 
     try {
-      const { data, error } = await authService.requestPasswordReset(email);
+      const { data, error } = await authService.requestSupabasePasswordReset(email);
       if (error) {
         setErrorMessage(error.message || 'Failed to send reset link.');
       } else {

@@ -5,6 +5,8 @@
  * and decoupling of account registration from active session creation.
  */
 
+import { supabase } from '../config/supabaseClient.js';
+
 const STORAGE_KEY = 'levelnlearn_srmist_user';
 const SUPER_ADMIN_EMAIL = 'quizsrm@gmail.com';
 const API_BASE = '/api/auth';
@@ -268,6 +270,97 @@ export const authService = {
       return json.data || null;
     } catch (e) {
       return null;
+    }
+  },
+
+  /**
+   * Supabase Auth: Requests password recovery email via Supabase GoTrue Auth.
+   * If Supabase Auth is unconfigured or encounters a delivery/rate limit error,
+   * it gracefully delegates to the server reset service so students are never stranded.
+   */
+  async requestSupabasePasswordReset(email) {
+    try {
+      if (!email || !this.isValidSrmistEmail(email)) {
+        return { data: null, error: { message: 'Must be an official @srmist.edu.in email address.' } };
+      }
+
+      const cleanEmail = email.trim().toLowerCase();
+      const origin = typeof window !== 'undefined' && window.location?.origin 
+        ? window.location.origin 
+        : 'https://levelnlearnv2.vercel.app';
+      const redirectTo = `${origin}/reset-password`;
+
+      // 1. Trigger Supabase Auth password recovery
+      try {
+        const { error: supaErr } = await supabase.auth.resetPasswordForEmail(cleanEmail, {
+          redirectTo,
+        });
+
+        if (supaErr) {
+          console.warn('[Supabase Auth Reset] Provider notification:', supaErr.message);
+          // If Supabase email provider is unconfigured or rate limited, fallback to backend reset pipeline
+          return await this.requestPasswordReset(cleanEmail);
+        }
+      } catch (e) {
+        return await this.requestPasswordReset(cleanEmail);
+      }
+
+      // Also trigger backend record creation to ensure both stores remain synchronized
+      try {
+        await this.requestPasswordReset(cleanEmail);
+      } catch (backendErr) {}
+
+      return {
+        data: { message: 'If an account exists for this email, password reset instructions will be sent.' },
+        error: null,
+      };
+    } catch (e) {
+      return { data: null, error: { message: 'Network error during password reset request.' } };
+    }
+  },
+
+  /**
+   * Supabase Auth: Updates password for an active recovery session.
+   * Synchronizes new password to public.users and guarantees zero auto-login by calling signOut().
+   */
+  async updateSupabasePassword(newPassword) {
+    try {
+      if (!newPassword || newPassword.length < 6) {
+        return { data: null, error: { message: 'Password must be at least 6 characters long.' } };
+      }
+
+      // Update password in Supabase Auth
+      const { data, error } = await supabase.auth.updateUser({
+        password: newPassword,
+      });
+
+      if (error) {
+        return { data: null, error: { message: error.message || 'Failed to update password.' } };
+      }
+
+      // Sync password to backend public.users store with PBKDF2 hash
+      const email = data?.user?.email;
+      if (email) {
+        try {
+          await fetch(`${API_BASE}/sync-supabase-password`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email, newPassword }),
+          });
+        } catch (syncErr) {
+          console.warn('[Supabase Auth Sync] Warning syncing to backend:', syncErr.message);
+        }
+      }
+
+      // CRITICAL: Explicitly sign out so user is NOT automatically authenticated
+      try {
+        await supabase.auth.signOut();
+      } catch (signOutErr) {}
+      localStorage.removeItem(STORAGE_KEY);
+
+      return { data, error: null };
+    } catch (e) {
+      return { data: null, error: { message: e.message || 'Network error updating password.' } };
     }
   },
 };

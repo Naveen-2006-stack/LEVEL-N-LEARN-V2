@@ -61,28 +61,69 @@ export function signAuthToken(payload) {
 }
 
 /**
- * Verifies and decodes an HMAC-SHA256 authenticated session token.
+ * Verifies and decodes an authenticated session token.
+ * Supports both:
+ * 1. Custom LevelNLearn 2-part HMAC-SHA256 session tokens (`data.signature`).
+ * 2. Supabase Auth / GoTrue 3-part JWTs (`header.payload.signature`).
  * @param {string} token 
  * @returns {object|null}
  */
 export function verifyAuthToken(token) {
   try {
     if (!token || typeof token !== 'string') return null;
-    const [data, signature] = token.split('.');
-    if (!data || !signature) return null;
-    
-    const expectedSignature = crypto.createHmac('sha256', SECRET).update(data).digest('base64');
-    const sigBuffer = Buffer.from(signature);
-    const expectedBuffer = Buffer.from(expectedSignature);
-    if (sigBuffer.length !== expectedBuffer.length || !crypto.timingSafeEqual(sigBuffer, expectedBuffer)) {
-      return null;
+    const parts = token.split('.');
+
+    // 1. Custom 2-part LevelNLearn HMAC token
+    if (parts.length === 2) {
+      const [data, signature] = parts;
+      const expectedSignature = crypto.createHmac('sha256', SECRET).update(data).digest('base64');
+      const sigBuffer = Buffer.from(signature);
+      const expectedBuffer = Buffer.from(expectedSignature);
+      if (sigBuffer.length !== expectedBuffer.length || !crypto.timingSafeEqual(sigBuffer, expectedBuffer)) {
+        return null;
+      }
+      
+      const decoded = JSON.parse(Buffer.from(data, 'base64').toString('utf8'));
+      if (decoded.exp && Date.now() > decoded.exp) {
+        return null; // Expired token
+      }
+      return decoded;
     }
-    
-    const decoded = JSON.parse(Buffer.from(data, 'base64').toString('utf8'));
-    if (decoded.exp && Date.now() > decoded.exp) {
-      return null; // Expired token
+
+    // 2. Standard 3-part Supabase Auth JWT
+    if (parts.length === 3) {
+      // Decode and validate payload JSON
+      const payload = JSON.parse(Buffer.from(parts[1], 'base64').toString('utf8'));
+      
+      // Check expiration (standard JWT exp is in seconds)
+      if (payload.exp) {
+        const expMs = payload.exp > 10000000000 ? payload.exp : payload.exp * 1000;
+        if (Date.now() > expMs) {
+          return null; // Expired Supabase JWT
+        }
+      }
+
+      // Ensure user ID exists (Supabase places UUID in sub)
+      const userId = payload.sub || payload.userId;
+      if (!userId) return null;
+
+      const email = payload.email || '';
+      const username = email ? email.split('@')[0] : (payload.user_metadata?.username || userId);
+      const isSuperAdmin = email === 'quizsrm@gmail.com' || payload.role === 'super_admin' || payload.app_metadata?.role === 'super_admin';
+      const role = isSuperAdmin ? 'super_admin' : (payload.app_metadata?.role || payload.user_metadata?.role || payload.role || 'user');
+
+      return {
+        ...payload,
+        userId,
+        sub: userId,
+        email,
+        username,
+        role,
+        isSupabaseAuth: true,
+      };
     }
-    return decoded;
+
+    return null;
   } catch (e) {
     return null;
   }

@@ -4,6 +4,7 @@ import {
   Lock, Eye, EyeOff, CheckCircle2, AlertCircle, Sparkles, Loader2, KeyRound, ShieldAlert 
 } from 'lucide-react';
 import authService from '../services/authService.js';
+import { supabase } from '../config/supabaseClient.js';
 import { GlassCard } from './common/UIComponents.jsx';
 import '../styles/globals.css';
 
@@ -29,37 +30,104 @@ export function ResetPasswordPage() {
   const [isValidatingToken, setIsValidatingToken] = useState(true);
   const [tokenError, setTokenError] = useState('');
   const [accountEmail, setAccountEmail] = useState('');
+  const [isRecoverySession, setIsRecoverySession] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const [isSuccess, setIsSuccess] = useState(false);
 
-  // Validate token on mount
+  // Validate token or Supabase Auth recovery session on mount
   useEffect(() => {
-    async function checkToken() {
-      if (!token) {
-        setTokenError('No password reset token was provided in the link.');
-        setIsValidatingToken(false);
+    let isMounted = true;
+
+    async function initRecovery() {
+      setIsValidatingToken(true);
+      setTokenError('');
+
+      // 1. Check for error parameters in URL hash (e.g. from Supabase Auth expired link)
+      const hash = window.location.hash || '';
+      if (hash.includes('error=')) {
+        const hashParams = new URLSearchParams(hash.substring(1));
+        const errorDesc = hashParams.get('error_description') || 'Password reset link is invalid or has expired.';
+        if (isMounted) {
+          setTokenError(decodeURIComponent(errorDesc.replace(/\+/g, ' ')));
+          setIsValidatingToken(false);
+        }
         return;
       }
 
-      setIsValidatingToken(true);
+      // 2. Check for active Supabase Auth session or recovery tokens in URL
       try {
-        const { data, error } = await authService.verifyResetToken(token);
-        if (error) {
-          setTokenError(error.message || 'Password reset link is invalid or has expired.');
-        } else if (data?.valid || data?.success) {
-          setAccountEmail(data.email || '');
-          setTokenError('');
+        const { data: { session } } = await supabase.auth.getSession();
+        const isRecoveryHash = hash.includes('type=recovery') || hash.includes('access_token=');
+        const codeParam = searchParams.get('code');
+
+        if (session || isRecoveryHash || codeParam) {
+          if (isMounted) {
+            setIsRecoverySession(true);
+            setTokenError('');
+            if (session?.user?.email) {
+              setAccountEmail(session.user.email);
+            }
+            setIsValidatingToken(false);
+          }
+          return;
         }
-      } catch (err) {
-        setTokenError('Unable to connect to authentication server. Please check your connection.');
-      } finally {
+      } catch (supaErr) {
+        console.warn('[Supabase Session Check] Recovery check:', supaErr.message);
+      }
+
+      // 3. Fallback to direct backend token parameter (?token=...)
+      if (token) {
+        try {
+          const { data, error } = await authService.verifyResetToken(token);
+          if (!isMounted) return;
+
+          if (error) {
+            setTokenError(error.message || 'Password reset link is invalid or has expired.');
+          } else if (data?.valid || data?.success) {
+            setAccountEmail(data.email || '');
+            setTokenError('');
+          }
+        } catch (err) {
+          if (isMounted) {
+            setTokenError('Unable to connect to authentication server. Please check your connection.');
+          }
+        } finally {
+          if (isMounted) {
+            setIsValidatingToken(false);
+          }
+        }
+        return;
+      }
+
+      // 4. No valid recovery credentials provided
+      if (isMounted) {
+        setTokenError('No password reset credentials were provided in the link.');
         setIsValidatingToken(false);
       }
     }
 
-    checkToken();
-  }, [token]);
+    // Subscribe to Supabase Auth state changes (PASSWORD_RECOVERY event)
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (event === 'PASSWORD_RECOVERY' || (event === 'SIGNED_IN' && window.location.hash.includes('type=recovery'))) {
+        if (isMounted) {
+          setIsRecoverySession(true);
+          setIsValidatingToken(false);
+          setTokenError('');
+          if (session?.user?.email) {
+            setAccountEmail(session.user.email);
+          }
+        }
+      }
+    });
+
+    initRecovery();
+
+    return () => {
+      isMounted = false;
+      subscription?.unsubscribe();
+    };
+  }, [token, searchParams]);
 
   // Password Requirements Feedback
   const hasMinLength = newPassword.length >= 6;
@@ -96,12 +164,24 @@ export function ResetPasswordPage() {
     setIsSubmitting(true);
 
     try {
-      const { error } = await authService.resetPassword(token, newPassword);
-
-      if (error) {
-        setErrorMessage(error.message || 'Failed to update password.');
+      if (isRecoverySession) {
+        // Execute password update via Supabase Auth
+        const { error } = await authService.updateSupabasePassword(newPassword);
+        if (error) {
+          setErrorMessage(error.message || 'Failed to update password.');
+        } else {
+          setIsSuccess(true);
+        }
+      } else if (token) {
+        // Execute password update via server token
+        const { error } = await authService.resetPassword(token, newPassword);
+        if (error) {
+          setErrorMessage(error.message || 'Failed to update password.');
+        } else {
+          setIsSuccess(true);
+        }
       } else {
-        setIsSuccess(true);
+        setErrorMessage('Session has expired. Please request a new password recovery link.');
       }
     } catch (err) {
       setErrorMessage(err.message || 'Network error occurred while resetting password.');
