@@ -157,6 +157,19 @@ export const passwordResetService = {
     resetTokens.set(tokenHash, tokenRecord);
     saveTokensToDisk();
 
+    // Persist token hash to Supabase if table exists
+    try {
+      await supabase.from('password_reset_tokens').insert([{
+        token_hash: tokenHash,
+        user_id: user.id,
+        email: cleanEmail,
+        expires_at: new Date(expiresAt).toISOString(),
+        used: false,
+      }]);
+    } catch (e) {
+      // Supabase table may not exist yet or be blocked; fallback to resilient disk store
+    }
+
     // Construct full reset URL
     const baseUrl = origin.replace(/\/$/, '');
     const resetUrl = `${baseUrl}/reset-password?token=${rawToken}`;
@@ -201,7 +214,30 @@ export const passwordResetService = {
     }
 
     const tokenHash = this.hashToken(rawToken);
-    const record = resetTokens.get(tokenHash);
+    let record = resetTokens.get(tokenHash);
+
+    // If not in local memory, attempt retrieval from Supabase
+    if (!record) {
+      try {
+        const { data: dbToken } = await supabase
+          .from('password_reset_tokens')
+          .select('*')
+          .eq('token_hash', tokenHash)
+          .maybeSingle();
+
+        if (dbToken) {
+          record = {
+            tokenHash: dbToken.token_hash,
+            userId: dbToken.user_id,
+            email: dbToken.email,
+            expiresAt: new Date(dbToken.expires_at).getTime(),
+            used: dbToken.used,
+            createdAt: dbToken.created_at,
+          };
+          resetTokens.set(tokenHash, record);
+        }
+      } catch (e) {}
+    }
 
     if (!record) {
       return { valid: false, error: 'Invalid or unrecognized reset token.' };
@@ -316,6 +352,16 @@ export const passwordResetService = {
     record.used = true;
     record.usedAt = new Date().toISOString();
     saveTokensToDisk();
+
+    try {
+      await supabase
+        .from('password_reset_tokens')
+        .update({
+          used: true,
+          used_at: new Date().toISOString(),
+        })
+        .eq('token_hash', tokenHash);
+    } catch (e) {}
 
     console.log(`[Password Reset] Password reset successfully executed for ${record.email}`);
 
